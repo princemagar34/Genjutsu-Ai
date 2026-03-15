@@ -23,3 +23,11 @@ Thumbs.db
 # package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# Local env
+*.env
