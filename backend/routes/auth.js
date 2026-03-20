@@ -17,7 +17,7 @@ router.get('/google',
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/auth/failed' }),
-  (req, res) => { req.session.user = req.user; res.redirect('/'); }
+  (req, res) => { req.session.user = req.user; res.redirect(process.env.FRONTEND_URL || 'https://genjutsu.org'); }
 );
 
 router.get('/failed', (req, res) =>
