@@ -3,8 +3,7 @@
 // ============================================================
 
 // ── Backend API base URL ──────────────────────────────────────
-const API_BASE = 'https://genjutsu-ai-production.up.railway.app';
-
+const API_BASE ='https://genjutsu-ai-production.up.railway.app';
 // ── Chart instances (so we can update them later) ────────────
 let threatLineChart = null;
 let threatPieChart  = null;
