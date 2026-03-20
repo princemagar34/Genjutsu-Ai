@@ -27,7 +27,23 @@ const PORT = process.env.PORT || 3001;
 app.set('trust proxy', 1);
 
 // ── CORS ──────────────────────────────────────────────────────
-app.use(cors({ origin: true, credentials: true }));
+const ALLOWED_ORIGINS = [
+  'https://genjutsu.org',
+  'https://www.genjutsu.org',
+  'https://genjutsu.princemagar338.workers.dev',
+  'http://localhost:3001',
+  'http://localhost:5500'
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,6 +57,7 @@ app.use(session({
   cookie: {
     secure:   process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge:   24 * 60 * 60 * 1000
   }
 }));

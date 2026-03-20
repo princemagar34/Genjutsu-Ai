@@ -2,6 +2,9 @@
 // script.js — Genjutsu Frontend Logic (fully integrated with backend)
 // ============================================================
 
+// ── Backend API base URL ──────────────────────────────────────
+const API_BASE = 'https://genjutsu-ai-production.up.railway.app';
+
 // ── Chart instances (so we can update them later) ────────────
 let threatLineChart = null;
 let threatPieChart  = null;
@@ -24,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================================
 async function checkAuthAndInit() {
     try {
-        const res  = await fetch('/auth/me');
+        const res  = await fetch(`${API_BASE}/auth/me`, {credentials:'include'});
         const data = await res.json();
 
         if (!data.loggedIn) {
@@ -82,7 +85,7 @@ function showLoginScreen() {
 }
 
 async function logout() {
-    await fetch('/auth/logout');
+    await fetch(`${API_BASE}/auth/logout`, {credentials:'include'});
     window.location.reload();
 }
 
@@ -178,7 +181,7 @@ function showToast(title, message, type = 'danger') {
 // ============================================================
 async function loadDashboard() {
     try {
-        const res  = await fetch('/api/analytics/dashboard');
+        const res  = await fetch(`${API_BASE}/api/analytics/dashboard`, {credentials:'include'});
         const data = await res.json();
         if (!data.success) return;
 
@@ -510,7 +513,7 @@ async function loadThreats() {
         <i class="fas fa-spinner fa-spin"></i><p>Analysing threats...</p></div>`;
 
     try {
-        const res  = await fetch('/api/threats');
+        const res  = await fetch(`${API_BASE}/api/threats`, {credentials:'include'});
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
 
@@ -703,8 +706,8 @@ function initHoneypotToggle() {
         label.style.color   = active ? 'var(--success-color)' : 'var(--text-muted)';
 
         // Sync with settings API
-        await fetch('/api/settings', {
-            method: 'PUT',
+        await fetch(`${API_BASE}/api/settings`, {
+            method: 'PUT', credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ honeypotMode: active })
         });
@@ -736,8 +739,8 @@ async function engageHoneypot(emailId, senderEmail, subject) {
     showToast('Engaging Honeypot', `Sending reply to ${actualTarget}...`, 'info');
 
     try {
-        const res  = await fetch('/api/honeypot/engage', {
-            method: 'POST',
+        const res  = await fetch(`${API_BASE}/api/honeypot/engage`, {
+            method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             // pass emailBody so AI can craft a contextual reply to what the scammer wrote
             body: JSON.stringify({ 
@@ -767,7 +770,7 @@ async function loadHoneypotSessions() {
     const list = document.getElementById('honeypotSessionsList');
 
     try {
-        const res  = await fetch('/api/honeypot/sessions');
+        const res  = await fetch(`${API_BASE}/api/honeypot/sessions`, {credentials:'include'});
         const data = await res.json();
 
         document.getElementById('hpActiveSessions').textContent = data.totalSessions || 0;
@@ -812,7 +815,7 @@ async function endHoneypotSession(sessionId) {
     if (!confirm('End this honeypot session?')) return;
 
     // FIX 3: use sessionId (not emailId) to match the DELETE route in honeypot.js
-    const res  = await fetch(`/api/honeypot/sessions/${sessionId}`, { method: 'DELETE' });
+    const res  = await fetch(`${API_BASE}/api/honeypot/sessions/${sessionId}`, { method: 'DELETE', credentials: 'include' });
     const data = await res.json();
 
     if (data.success) {
@@ -836,7 +839,7 @@ async function blockThreat(emailId) {
 // ============================================================
 function initSettings() {
     // Load saved settings from backend
-    fetch('/api/settings').then(r => r.json()).then(data => {
+    fetch(`${API_BASE}/api/settings`).then(r => r.json()).then(data => {
         if (!data.success) return;
         const settings = data.settings;
 
@@ -864,8 +867,8 @@ function initSettings() {
             const key   = this.dataset.setting;
             const value = this.checked;
 
-            await fetch('/api/settings', {
-                method: 'PUT',
+            await fetch(`${API_BASE}/api/settings`, {
+                method: 'PUT', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [key]: value })
             });
@@ -888,7 +891,7 @@ function initSettings() {
     });
 
     document.getElementById('reconnectGmail')?.addEventListener('click', function () {
-        window.location.href = '/auth/google';
+        window.location.href = `${API_BASE}/auth/google`;
     });
 }
 
@@ -976,7 +979,7 @@ function initButtons() {
         showToast('Generating Report', 'Building your personalised PDF report...', 'info');
 
         try {
-            const response = await fetch('/api/threats/report');
+            const response = await fetch(`${API_BASE}/api/threats/report`, {credentials:'include'});
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
@@ -1097,7 +1100,7 @@ async function doAdminLogin() {
     errorEl.classList.remove('visible');
 
     try {
-        const res  = await fetch('/admin/api/login', {
+        const res  = await fetch(`${API_BASE}/admin/api/login`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ email, password })
@@ -1127,7 +1130,7 @@ async function doAdminLogin() {
 
 async function loadNotifications() {
     try {
-        const res  = await fetch('/api/notifications');
+        const res  = await fetch(`${API_BASE}/api/notifications`, {credentials:'include'});
         const data = await res.json();
         if (!data.success) return;
 
@@ -1189,7 +1192,7 @@ function closeNotifPanel() {
 
 async function markAllRead() {
     try {
-        await fetch('/api/notifications/read', { method: 'PUT' });
+        await fetch(`${API_BASE}/api/notifications/read`, { method: 'PUT' });
         const badge = document.getElementById('notifBadge');
         if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
         renderNotifications([]);
@@ -1263,7 +1266,7 @@ async function sendAIMessage(overrideText) {
             `Suspicious: ${cachedEmails.filter(e => e.threat?.level === 'suspicious').length}. ` +
             `Safe: ${cachedEmails.filter(e => e.threat?.level === 'safe').length}.`;
 
-        const res  = await fetch('/api/ai/chat', {
+        const res  = await fetch(`${API_BASE}/api/ai/chat`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ message, context: ctx })
@@ -1330,7 +1333,7 @@ async function summariseEmailWithAI(emailId) {
     <div><i class="fas fa-spinner fa-spin" style="margin-right:6px"></i> Analysing email...</div>`;
 
     try {
-        const res  = await fetch('/api/ai/summarise', {
+        const res  = await fetch(`${API_BASE}/api/ai/summarise`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({
@@ -1374,7 +1377,7 @@ let honeypotPollInterval = null;
 
 async function pollHoneypot() {
     try {
-        const res  = await fetch('/api/honeypot/poll', { method: 'POST' });
+        const res  = await fetch(`${API_BASE}/api/honeypot/poll`, { method: 'POST' });
         const data = await res.json();
         if (data.replied > 0) {
             showToast('Honeypot Active!',
