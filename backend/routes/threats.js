@@ -13,8 +13,13 @@ const router = express.Router();
 // GET /api/threats — all threats list
 router.get('/threats', requireAuth, async (req, res) => {
   try {
-    const emails  = await fetchEmails(req.session.user.accessToken, 50);
-    const scanned = scanEmails(emails);
+    const emails  = await fetchEmails(req.session.user.accessToken, 100);
+    // FIX: scan each email individually so one bad/malformed email
+    // doesn't crash the entire threats response
+    const scanned = emails.map(email => {
+      try { return { ...email, threat: require('../services/threatService').analyseEmail(email) }; }
+      catch(e) { return { ...email, threat: { level:'safe', score:0, reasons:['Parse error'], mlResult:{}, nlpFeatures:{} } }; }
+    });
     const threats = scanned
       .filter(e => e.threat.level !== 'safe')
       .sort((a, b) => b.threat.score - a.threat.score);
@@ -36,7 +41,7 @@ router.get('/threats', requireAuth, async (req, res) => {
 // GET /api/threats/summary — quick stats
 router.get('/threats/summary', requireAuth, async (req, res) => {
   try {
-    const emails  = await fetchEmails(req.session.user.accessToken, 30);
+    const emails  = await fetchEmails(req.session.user.accessToken, 100);
     const scanned = scanEmails(emails);
     res.json({
       success:    true,

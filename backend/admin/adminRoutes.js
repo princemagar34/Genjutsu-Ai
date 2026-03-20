@@ -18,7 +18,9 @@ const {
   getSystemSetting, getAllSystemSettings, updateSystemSetting,
   suspendUser, unsuspendUser, getSuspendedUsers,
   overrideThreatLevel, getThreatOverride,
-  markAllAlertsRead, getAlerts
+  markAllAlertsRead, getAlerts,
+  getAllHoneypotSessions, endHoneypotSession,
+  updateHoneypotSession, getHoneypotSessionById
 } = require('../database/db');
 
 const router = express.Router();
@@ -324,6 +326,72 @@ router.delete('/admins/:id', requireAdmin, can('admins'), (req, res) => {
       'ADMIN_DELETED', `Deleted admin: ${target.email}`, getIP(req));
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── GET /admin/api/honeypot/sessions ── viewer+ ───────────────
+// Returns all honeypot sessions across ALL users for admin oversight
+router.get('/honeypot/sessions', requireAdmin, can('honeypot'), (req, res) => {
+  try {
+    const sessions = getAllHoneypotSessions();
+    const now = Date.now();
+
+    const enriched = sessions.map(s => {
+      const startedAt     = s.started_at ? new Date(s.started_at).getTime() : now;
+      const minutesWasted = s.status === 'active'
+        ? Math.floor((now - startedAt) / 60000)
+        : (s.minutes_wasted || 0);
+      return {
+        sessionId:    s.session_id,
+        userId:       s.user_id,
+        userEmail:    s.user_email  || null,
+        userName:     s.user_name   || null,
+        emailId:      s.email_id,
+        threadId:     s.thread_id,
+        senderEmail:  s.sender_email,
+        subject:      s.subject,
+        repliesSent:  s.replies_sent   || 0,
+        minutesWasted,
+        startedAt:    s.started_at,
+        lastReplyAt:  s.last_reply_at,
+        status:       s.status || 'active'
+      };
+    });
+
+    const stats = {
+      total:           enriched.length,
+      active:          enriched.filter(s => s.status === 'active').length,
+      ended:           enriched.filter(s => s.status === 'ended').length,
+      totalReplies:    enriched.reduce((a, s) => a + s.repliesSent, 0),
+      totalMinutes:    enriched.reduce((a, s) => a + s.minutesWasted, 0),
+      uniqueAttackers: new Set(enriched.map(s => s.senderEmail).filter(Boolean)).size
+    };
+
+    res.json({ success: true, stats, sessions: enriched });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── DELETE /admin/api/honeypot/sessions/:sessionId ── moderator+ ──
+router.delete('/honeypot/sessions/:sessionId', requireAdmin, can('review'), (req, res) => {
+  try {
+    const session = getHoneypotSessionById(req.params.sessionId);
+    if (session && session.started_at) {
+      const elapsed = Math.floor((Date.now() - new Date(session.started_at).getTime()) / 60000);
+      updateHoneypotSession(req.params.sessionId, {
+        minutes_wasted: elapsed,
+        status: 'ended'
+      });
+    }
+    endHoneypotSession(req.params.sessionId);
+    logActivity(
+      req.session.admin.email, req.session.admin.role,
+      'HONEYPOT_TERMINATED', `Terminated honeypot session: ${req.params.sessionId}`, getIP(req)
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;

@@ -13,25 +13,27 @@ const https           = require('https');
 
 const router = express.Router();
 
-// ── Call Gemini (free) ────────────────────────────────────────
-async function callGemini(systemPrompt, userMessage) {
+// ── Call Groq (free, no billing required) ────────────────────
+// Sign up free at console.groq.com — add GROQ_API_KEY to .env
+async function callGroq(systemPrompt, userMessage) {
   return new Promise((resolve, reject) => {
-    const apiKey  = process.env.GEMINI_API_KEY || '';
-    const combined = systemPrompt
-      ? `${systemPrompt}\n\nUser message: ${userMessage}`
-      : userMessage;
-
     const payload = JSON.stringify({
-      contents: [{ parts: [{ text: combined }] }],
-      generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
+        { role: 'user',   content: userMessage }
+      ],
+      max_tokens:  500,
+      temperature: 0.7
     });
 
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path:     `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      hostname: 'api.groq.com',
+      path:     '/openai/v1/chat/completions',
       method:   'POST',
       headers: {
         'Content-Type':  'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY || ''}`,
         'Content-Length': Buffer.byteLength(payload)
       }
     };
@@ -43,26 +45,20 @@ async function callGemini(systemPrompt, userMessage) {
         try {
           const p = JSON.parse(raw);
           if (p.error) {
-            console.error('Gemini API error:', JSON.stringify(p.error));
-            return reject(new Error(p.error.message || 'Gemini API error'));
+            console.error('Groq API error:', p.error.message);
+            return reject(new Error(p.error.message || 'Groq API error'));
           }
-          const text = p?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) {
-            console.error('Gemini empty response:', raw.substring(0, 300));
-            return reject(new Error('Gemini returned no text'));
-          }
+          const text = p?.choices?.[0]?.message?.content;
+          if (!text) return reject(new Error('Groq returned no text'));
           resolve(text.trim());
         } catch (e) {
-          console.error('Gemini parse error:', raw.substring(0, 300));
-          reject(new Error('Failed to parse Gemini response'));
+          console.error('Groq parse error:', raw.substring(0, 300));
+          reject(new Error('Failed to parse Groq response'));
         }
       });
     });
 
-    req.on('error', err => {
-      console.error('Gemini HTTPS error:', err.message);
-      reject(err);
-    });
+    req.on('error', err => { console.error('Groq HTTPS error:', err.message); reject(err); });
     req.write(payload);
     req.end();
   });
@@ -106,13 +102,13 @@ async function callClaude(systemPrompt, userMessage) {
 
 // ── Pick whichever provider has a key ────────────────────────
 async function callAI(system, message) {
-  if (process.env.GEMINI_API_KEY)    return callGemini(system, message);
+  if (process.env.GROQ_API_KEY)      return callGroq(system, message);  // free, recommended
   if (process.env.ANTHROPIC_API_KEY) return callClaude(system, message);
-  throw new Error('No AI key found. Add GEMINI_API_KEY to .env');
+  throw new Error('No AI key found. Add GROQ_API_KEY to .env — free at console.groq.com');
 }
 
 function hasKey() {
-  return !!(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
+  return !!(process.env.GROQ_API_KEY || process.env.ANTHROPIC_API_KEY);
 }
 
 // ── POST /api/ai/chat ─────────────────────────────────────────
@@ -122,7 +118,7 @@ router.post('/ai/chat', requireAuth, async (req, res) => {
 
   if (!hasKey()) {
     return res.json({ success: true,
-      reply: 'No AI key configured. Add GEMINI_API_KEY to .env — free key at aistudio.google.com' });
+      reply: 'No AI key configured. Add GROQ_API_KEY to .env — free key at console.groq.com (no billing needed)' });
   }
 
   try {
@@ -146,7 +142,7 @@ router.post('/ai/summarise', requireAuth, async (req, res) => {
   if (!subject && !from) return res.status(400).json({ success: false, error: 'Email data required.' });
 
   if (!hasKey()) {
-    return res.json({ success: true, summary: 'No AI key configured. Add GEMINI_API_KEY to .env' });
+    return res.json({ success: true, summary: 'No AI key configured. Add GROQ_API_KEY to .env — free at console.groq.com' });
   }
 
   try {

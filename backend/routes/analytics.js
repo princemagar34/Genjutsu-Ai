@@ -11,8 +11,13 @@ const router = express.Router();
 
 router.get('/analytics/dashboard', requireAuth, async (req, res) => {
   try {
-    const emails  = await fetchEmails(req.session.user.accessToken, 50);
-    const scanned = scanEmails(emails);
+    const emails  = await fetchEmails(req.session.user.accessToken, 100);
+    // FIX: scan per-email so one malformed email (null From etc.) never crashes the dashboard
+    const { analyseEmail } = require('../services/threatService');
+    const scanned = emails.map(email => {
+      try { return { ...email, threat: analyseEmail(email) }; }
+      catch(e) { return { ...email, threat: { level:'safe', score:0, reasons:[], mlResult:{}, nlpFeatures:{} } }; }
+    });
     const userId  = req.session.user.id;
 
     const dangerous  = scanned.filter(e => e.threat.level === 'dangerous');

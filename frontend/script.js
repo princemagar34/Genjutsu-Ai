@@ -8,6 +8,9 @@ let threatPieChart  = null;
 
 // ── Current loaded emails cache ──────────────────────────────
 let cachedEmails = [];
+// FIX: Safe lookup map so onclick handlers never embed raw email data in HTML attributes
+// (email.from / email.subject can contain quotes and angle brackets that break onclick)
+const emailDataMap = {};
 
 // ============================================================
 // INIT — runs on every page load
@@ -327,6 +330,8 @@ async function loadEmails(filter = 'all') {
         if (!data.success) throw new Error(data.error);
 
         cachedEmails = data.emails;
+        // FIX: populate safe lookup map
+        data.emails.forEach(e => { emailDataMap[e.id] = e; });
         countEl.textContent = `${data.total} emails loaded`;
 
         if (data.emails.length === 0) {
@@ -348,13 +353,117 @@ async function loadEmails(filter = 'all') {
 function renderEmailList(emails) {
     const list = document.getElementById('emailList');
     list.innerHTML = emails.map(email => {
-        const level  = email.threat?.level || 'safe';
-        const icon   = { safe: 'fa-check-circle', suspicious: 'fa-exclamation-circle',
-                         dangerous: 'fa-exclamation-triangle' }[level];
-        const tags   = email.threat?.reasons?.slice(0, 2).map(r =>
+        const level = email.threat?.level || 'safe';
+        const icon  = { safe: 'fa-check-circle', suspicious: 'fa-exclamation-circle',
+                        dangerous: 'fa-exclamation-triangle' }[level];
+        const tags  = email.threat?.reasons?.slice(0, 2).map(r =>
             `<span class="tag">${escHtml(r.split(':')[0])}</span>`).join('') || '';
-        const date   = email.date ? new Date(email.date).toLocaleTimeString([], {
+        const date  = email.date ? new Date(email.date).toLocaleTimeString([], {
             hour: '2-digit', minute: '2-digit' }) : '';
+
+        // ── Scan data ─────────────────────────────────────────────
+        const t       = email.threat || {};
+        const authRaw = t.authDetails?.raw || '';
+
+        // SPF / DKIM / DMARC
+        const spf   = (authRaw.match(/spf=(pass|fail|softfail|neutral|none|permerror)/i)  ||[])[1]||'none';
+        const dkim  = (authRaw.match(/dkim=(pass|fail|neutral|none|permerror)/i)           ||[])[1]||'none';
+        const dmarc = (authRaw.match(/dmarc=(pass|fail|none)/i)                            ||[])[1]||'none';
+        function chip(label, val) {
+            const v = (val||'none').toLowerCase();
+            const c = v==='pass'?'#10b981':(v==='fail'||v==='permerror')?'#ef4444':v==='softfail'?'#f59e0b':'#64748b';
+            const i = v==='pass'?'✅':(v==='fail'||v==='permerror')?'❌':v==='softfail'?'⚠️':'➖';
+            return `<span class="si-chip" style="border-color:${c};color:${c}">${i} ${label}: ${v.toUpperCase()}</span>`;
+        }
+
+        // URL scan
+        const links   = email.links || [];
+        const SUSP    = [/paypa1\.com/i,/g00gle\.com/i,/amaz0n\.com/i,/micros0ft\.com/i,
+                         /secure-login\./i,/account-verify\./i,/login-confirm\./i,/verify-account\./i];
+        const IP_PAT  = /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/;
+        const badUrls = links.filter(u => SUSP.some(p=>p.test(u)) || IP_PAT.test(u));
+        const urlColor = badUrls.length>0?'#ef4444':links.length>0?'#10b981':'#64748b';
+        const urlText  = badUrls.length>0?`${badUrls.length} suspicious / ${links.length} total`
+                       : links.length>0?`${links.length} scanned — clean`:'No links';
+
+        // Attachment scan
+        const atts     = email.attachments || [];
+        const attDets  = t.attachmentDetails || [];
+        const DANG     = new Set(['exe','bat','cmd','com','msi','ps1','vbs','js','jse','scr',
+                                  'pif','hta','jar','lnk','url','zip','rar','7z','iso',
+                                  'doc','docm','xls','xlsm','ppt','pptm']);
+        const SUSP_EXT = new Set(['pdf','docx','xlsx','pptx','rtf']);
+        const DBLEXT   = /\.\w{2,4}\.(exe|bat|cmd|scr|vbs|js|pif|com)$/i;
+        let attSummaryColor = '#64748b', attSummaryIcon = '➖', attSummaryText = 'No attachments';
+        let attChips = '';
+        if (atts.length > 0) {
+            const dangerCount = atts.filter(a => {
+                const e = (a.filename||'').split('.').pop().toLowerCase();
+                return DANG.has(e) || DBLEXT.test(a.filename||'');
+            }).length;
+            attSummaryColor = dangerCount>0?'#ef4444':'#10b981';
+            attSummaryIcon  = dangerCount>0?'❌':'✅';
+            attSummaryText  = `${atts.length} file${atts.length!==1?'s':''} — ${dangerCount>0?`${dangerCount} dangerous`:'all safe'}`;
+            attChips = atts.map(att => {
+                const name = att.filename||'unnamed';
+                const ext  = name.split('.').pop().toLowerCase();
+                const det  = attDets.find(d=>d.filename===name);
+                const risk = det?.risk||(DBLEXT.test(name)?'dangerous':DANG.has(ext)?'dangerous':SUSP_EXT.has(ext)?'suspicious':'clean');
+                const c    = risk==='dangerous'?'#ef4444':risk==='suspicious'?'#f59e0b':'#10b981';
+                const ic   = risk==='dangerous'?'❌':risk==='suspicious'?'⚠️':'✅';
+                return `<span class="si-chip" style="border-color:${c};color:${c}">${ic} ${escHtml(name.substring(0,20))}${name.length>20?'…':''}</span>`;
+            }).join('');
+        }
+
+        // ── Full detail panel (hidden until toggle clicked) ───────
+        const scanPanel = `
+        <div class="scan-inline-panel" id="scan-panel-${email.id}" style="display:none">
+            <div class="si-row">
+                <span class="si-label">🔐 SPF / DKIM / DMARC</span>
+                <div class="si-chips">
+                    ${chip('SPF',spf)}${chip('DKIM',dkim)}${chip('DMARC',dmarc)}
+                    ${!authRaw?'<span class="si-note">No auth headers — heuristic used</span>':''}
+                </div>
+            </div>
+            <div class="si-row">
+                <span class="si-label">🔗 URL Scanner</span>
+                <div class="si-chips">
+                    <span class="si-chip" style="border-color:${urlColor};color:${urlColor}">${links.length>0?'✅':'➖'} ${urlText}</span>
+                    ${badUrls.slice(0,3).map(u=>`<span class="si-chip" style="border-color:#ef4444;color:#ef4444" title="${escHtml(u)}">⚠️ ${escHtml(u.replace(/https?:\/\//,'').substring(0,28))}…</span>`).join('')}
+                </div>
+            </div>
+            <div class="si-row">
+                <span class="si-label">📎 Attachments</span>
+                <div class="si-chips">
+                    <span class="si-chip" style="border-color:${attSummaryColor};color:${attSummaryColor}">${attSummaryIcon} ${attSummaryText}</span>
+                    ${attChips}
+                </div>
+            </div>
+        </div>`;
+
+        // ── Status bar (always visible, shows 3 coloured dots) ────
+        const spfDot = spf==='pass'?'#10b981':(spf==='fail'||spf==='permerror')?'#ef4444':spf==='softfail'?'#f59e0b':'#64748b';
+        const statusBar = `
+        <button class="btn-scan-toggle" id="scan-btn-${email.id}"
+            onclick="toggleScanPanel('${email.id}')" title="Show scan results">
+            <span class="scan-status-row">
+                <span class="scan-status-item" style="color:${spfDot}">
+                    <span class="scan-dot" style="background:${spfDot}"></span>
+                    <span class="scan-status-text">SPF/DKIM/DMARC</span>
+                </span>
+                <span class="scan-status-sep">·</span>
+                <span class="scan-status-item" style="color:${urlColor}">
+                    <span class="scan-dot" style="background:${urlColor}"></span>
+                    <span class="scan-status-text">URL${links.length>0?` (${links.length})`:'s'}</span>
+                </span>
+                <span class="scan-status-sep">·</span>
+                <span class="scan-status-item" style="color:${attSummaryColor}">
+                    <span class="scan-dot" style="background:${attSummaryColor}"></span>
+                    <span class="scan-status-text">Files${atts.length>0?` (${atts.length})`:''}</span>
+                </span>
+                <span class="scan-toggle-arrow" id="scan-arrow-${email.id}">▾</span>
+            </span>
+        </button>`;
 
         return `<div class="email-item ${level}" data-id="${email.id}">
             <input type="checkbox" class="email-checkbox">
@@ -367,6 +476,8 @@ function renderEmailList(emails) {
                 <p class="email-sender">From: ${escHtml(email.from)}</p>
                 <p class="email-preview">${escHtml(email.snippet)}</p>
                 ${tags ? `<div class="threat-tags">${tags}</div>` : ''}
+                ${statusBar}
+                ${scanPanel}
             </div>
             <button class="btn-icon ${level === 'dangerous' ? 'danger' : ''}"
                 onclick="openEmailModal('${email.id}')" title="View Details">
@@ -377,6 +488,17 @@ function renderEmailList(emails) {
 
     initSelectAll();
     initSearchFilter();
+}
+
+function toggleScanPanel(emailId) {
+    const panel = document.getElementById(`scan-panel-${emailId}`);
+    const btn   = document.getElementById(`scan-btn-${emailId}`);
+    const arrow = document.getElementById(`scan-arrow-${emailId}`);
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    btn.classList.toggle('active', !isOpen);
+    if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 // ============================================================
@@ -424,6 +546,12 @@ async function loadThreats() {
             return;
         }
 
+        // Populate caches so openEmailModal() works from the threats page
+        data.threats.forEach(email => {
+            emailDataMap[email.id] = email;
+            if (!cachedEmails.find(e => e.id === email.id)) cachedEmails.push(email);
+        });
+
         detailsEl.innerHTML = data.threats.map(email => {
             const t     = email.threat;
             const sev   = t.level === 'dangerous' ? 'HIGH RISK' : 'MEDIUM RISK';
@@ -457,8 +585,7 @@ async function loadThreats() {
                     <button class="btn btn-secondary"
                         onclick="openEmailModal('${email.id}')">View Email</button>
                     <button class="btn btn-primary"
-                        onclick="engageHoneypot('${email.id}', '${escHtml(email.from)}',
-                        '${escHtml(email.subject)}')">
+                        onclick="engageHoneypotById('${email.id}')">
                         <i class="fas fa-bug"></i> Engage Honeypot
                     </button>
                     <button class="btn btn-danger"
@@ -487,8 +614,8 @@ function initEmailModal() {
 }
 
 function openEmailModal(emailId) {
-    const email = cachedEmails.find(e => e.id === emailId);
-    if (!email) { showToast('Error', 'Email not found in cache', 'warning'); return; }
+    const email = emailDataMap[emailId] || cachedEmails.find(e => e.id === emailId);
+    if (!email) { showToast('Error', 'Email not found — try clicking Scan Now first', 'warning'); return; }
 
     const modal     = document.getElementById('emailModal');
     const bodyEl    = document.getElementById('modalBody');
@@ -533,13 +660,28 @@ function openEmailModal(emailId) {
     // Show honeypot button only for threats
     if (t?.level !== 'safe') {
         hpBtn.style.display = 'inline-flex';
-        hpBtn.onclick = () => {
-            closeModal();
-            engageHoneypot(email.id, email.from, email.subject);
-        };
+        hpBtn.onclick = () => { closeModal(); engageHoneypot(email.id, email.from, email.subject); };
     } else {
         hpBtn.style.display = 'none';
     }
+
+    // Inject AI summary box
+    setTimeout(() => {
+        const mb = document.getElementById('modalBody');
+        if (mb && !document.getElementById('aiSummaryBox')) {
+            const box = document.createElement('div');
+            box.className = 'ai-summary-box';
+            box.id = 'aiSummaryBox';
+            box.innerHTML = `<div class="ai-summary-label"><i class="fas fa-robot"></i> AI Summary</div>
+            <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px">
+                <button class="btn-ai-summary" onclick="summariseEmailWithAI('${emailId}')">
+                    <i class="fas fa-robot"></i> Generate AI Summary
+                </button>
+                <span style="font-size:11px">Click to analyse this email with AI</span>
+            </div>`;
+            mb.insertBefore(box, mb.firstChild);
+        }
+    }, 50);
 
     modal.style.display = 'flex';
 }
@@ -574,25 +716,45 @@ function initHoneypotToggle() {
     document.getElementById('refreshSessions')?.addEventListener('click', loadHoneypotSessions);
 }
 
+// FIX: safe wrapper — looks up email data from map instead of relying on
+// inline HTML attributes that break when from/subject contain quotes or angle brackets
+function engageHoneypotById(emailId) {
+    const email = emailDataMap[emailId] || cachedEmails.find(e => e.id === emailId);
+    if (!email) { showToast('Error', 'Email not found', 'warning'); return; }
+    engageHoneypot(email.id, email.from, email.subject);
+}
+
 async function engageHoneypot(emailId, senderEmail, subject) {
-    showToast('Engaging Honeypot', `Sending reply to ${senderEmail}...`, 'info');
+    // FIX 1: Extract Reply-To from the cached email so we reply to the actual
+    // scammer address, not Google's no-reply From address.
+    const cachedEmail  = cachedEmails.find(e => e.id === emailId);
+    const replyTo      = cachedEmail?.replyTo  || null;
+    const threadId     = cachedEmail?.threadId || null;
+    const messageId    = cachedEmail?.messageId || null; // Message-ID for In-Reply-To threading
+    const actualTarget = replyTo || senderEmail;
+
+    showToast('Engaging Honeypot', `Sending reply to ${actualTarget}...`, 'info');
 
     try {
         const res  = await fetch('/api/honeypot/engage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ emailId, senderEmail, subject })
+            // pass emailBody so AI can craft a contextual reply to what the scammer wrote
+            body: JSON.stringify({ 
+                emailId, senderEmail, replyTo, threadId, messageId, subject,
+                emailBody: cachedEmail?.body || cachedEmail?.snippet || ''
+            })
         });
         const data = await res.json();
 
         if (data.success) {
-            showToast('Honeypot Engaged! 🎣',
-                `Reply sent to ${senderEmail}. Time-wasting started!`, 'success');
+            showToast('Honeypot Engaged!',
+                `Reply sent to ${actualTarget}. Time-wasting started!`, 'success');
             await loadHoneypotSessions();
-
-            // Update honeypot count on dashboard
-            const current = parseInt(document.getElementById('statHoneypot').textContent) || 0;
-            document.getElementById('statHoneypot').textContent = current + 1;
+        } else if (data.noReplyBlocked) {
+            // FIX: specific message when email has no real scammer Reply-To address
+            showToast('Not a Scammer Email',
+                'This is a real system email with no Reply-To. Honeypot only works on phishing emails.', 'warning');
         } else {
             showToast('Honeypot Error', data.error || 'Could not send reply', 'danger');
         }
@@ -610,7 +772,8 @@ async function loadHoneypotSessions() {
 
         document.getElementById('hpActiveSessions').textContent = data.totalSessions || 0;
         document.getElementById('hpTimeWasted').textContent = `${data.totalMinutesWasted || 0} min`;
-        document.getElementById('hpVictims').textContent = data.totalSessions * 2 || 0;
+        // FIX 2: use victimsProtected from backend (scoped to this user), not a made-up formula
+        document.getElementById('hpVictims').textContent = data.victimsProtected || 0;
 
         if (!data.sessions || data.sessions.length === 0) {
             list.innerHTML = `<div class="empty-state">
@@ -621,9 +784,9 @@ async function loadHoneypotSessions() {
         }
 
         list.innerHTML = data.sessions.map(s => `
-            <div class="honeypot-session" id="session-${s.emailId}">
+            <div class="honeypot-session" id="session-${s.sessionId}">
                 <div class="session-header">
-                    <div class="session-status active"></div>
+                    <div class="session-status ${s.status === 'active' ? 'active' : ''}"></div>
                     <h4>${escHtml(s.subject || 'Scam Email')}</h4>
                     <span class="session-duration">${s.minutesWasted} min wasted</span>
                 </div>
@@ -633,8 +796,9 @@ async function loadHoneypotSessions() {
                     <p><strong>Started:</strong> ${new Date(s.startedAt).toLocaleString()}</p>
                 </div>
                 <div class="session-actions">
+                    <!-- FIX 4: pass sessionId (not emailId) to match the DELETE route -->
                     <button class="btn btn-sm btn-danger"
-                        onclick="endHoneypotSession('${s.emailId}')">End Session</button>
+                        onclick="endHoneypotSession('${s.sessionId}')">End Session</button>
                 </div>
             </div>`).join('');
 
@@ -644,10 +808,11 @@ async function loadHoneypotSessions() {
     }
 }
 
-async function endHoneypotSession(emailId) {
+async function endHoneypotSession(sessionId) {
     if (!confirm('End this honeypot session?')) return;
 
-    const res  = await fetch(`/api/honeypot/sessions/${emailId}`, { method: 'DELETE' });
+    // FIX 3: use sessionId (not emailId) to match the DELETE route in honeypot.js
+    const res  = await fetch(`/api/honeypot/sessions/${sessionId}`, { method: 'DELETE' });
     const data = await res.json();
 
     if (data.success) {
@@ -1190,35 +1355,6 @@ async function summariseEmailWithAI(emailId) {
     }
 }
 
-// Patch openEmailModal to include AI summary button
-const _origOpenEmailModal = typeof openEmailModal === 'function' ? openEmailModal : null;
-function openEmailModal(emailId) {
-    if (_origOpenEmailModal) _origOpenEmailModal(emailId);
-
-    // Inject AI summary box into modal body after a tick
-    setTimeout(() => {
-        const modalBody = document.getElementById('modalBody');
-        if (!modalBody) return;
-
-        // Only add if not already there
-        if (!document.getElementById('aiSummaryBox')) {
-            const box = document.createElement('div');
-            box.className = 'ai-summary-box';
-            box.id        = 'aiSummaryBox';
-            box.innerHTML = `<div class="ai-summary-label">
-                <i class="fas fa-robot"></i> AI Summary
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:13px">
-                <button class="btn-ai-summary" onclick="summariseEmailWithAI('${emailId}')">
-                    <i class="fas fa-robot"></i> Generate AI Summary
-                </button>
-                <span style="font-size:11px">Click to analyse this email with AI</span>
-            </div>`;
-            modalBody.insertBefore(box, modalBody.firstChild);
-        }
-    }, 50);
-}
-
 // =============================================================
 // ALSO CALL loadNotifications on startup
 // =============================================================
@@ -1230,3 +1366,39 @@ setTimeout(() => {
         loadNotifications();
     }
 }, 2000);
+
+// =============================================================
+// HONEYPOT AUTO-POLL — checks for scammer replies every 2 min
+// =============================================================
+let honeypotPollInterval = null;
+
+async function pollHoneypot() {
+    try {
+        const res  = await fetch('/api/honeypot/poll', { method: 'POST' });
+        const data = await res.json();
+        if (data.replied > 0) {
+            showToast('Honeypot Active!',
+                `Sent ${data.replied} auto-repl${data.replied > 1 ? 'ies' : 'y'} to scammer(s)`, 'success');
+            await loadHoneypotSessions(); // refresh session list
+        }
+    } catch (err) {
+        // silent fail — polling should never interrupt the user
+    }
+}
+
+function startHoneypotPolling() {
+    if (honeypotPollInterval) return; // already running
+    // Poll every 30 seconds for scammer replies
+    honeypotPollInterval = setInterval(pollHoneypot, 30 * 1000);
+    console.log('[Honeypot] Auto-poll started (every 30 sec)');
+}
+
+function stopHoneypotPolling() {
+    if (honeypotPollInterval) {
+        clearInterval(honeypotPollInterval);
+        honeypotPollInterval = null;
+    }
+}
+
+// Start polling automatically when app loads
+setTimeout(startHoneypotPolling, 5000);

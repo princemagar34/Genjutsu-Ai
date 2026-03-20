@@ -1,5 +1,5 @@
 // ============================================================
-// services/threatService.js — Multi-layer + ML + NLP + SPF/DKIM
+// services/threatService.js — Multi-layer + ML + NLP + SPF/DKIM/DMARC
 // ============================================================
 const { classifyText, extractNLPFeatures } = require('./mlService');
 
@@ -20,56 +20,221 @@ const SUSPICIOUS_DOMAINS = [
 
 const FREE_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','aol.com'];
 
-// Layer 6: SPF/DKIM/DMARC simulation
-// Checks for common signs that the sender domain fails authentication
+// ── Layer 6: Real SPF/DKIM/DMARC header parsing ───────────────
+// Gmail adds 'Authentication-Results' to every inbound message.
+// We parse the actual pass/fail/none values from that header.
+//
+// Example header value:
+//   mx.google.com;
+//     dkim=pass header.i=@paypal.com;
+//     spf=fail (google.com: domain does not designate ...) smtp.mailfrom=evil.com;
+//     dmarc=fail (p=REJECT sp=REJECT dis=REJECT) header.from=paypal.com
+//
 function checkSenderAuthentication(email) {
   const issues  = [];
   let   penalty = 0;
   const from    = (email.from || '').toLowerCase();
   const domain  = (from.match(/@([\w.-]+)/) || [])[1] || '';
 
-  // Typosquatted domains (e.g. paypa1.com, g00gle.com)
-  const typoPatterns = [/paypa[l1]\.com/, /go+gle\.com/, /amaz[o0]n\.com/,
-                        /micros[o0]ft\.com/, /app[l1]e\.com/, /faceb[o0]{2}k\.com/];
-  if (typoPatterns.some(p => p.test(domain))) {
-    penalty += 45;
-    issues.push(`SPF: Likely spoofed domain "${domain}"`);
+  // ── Parse real Authentication-Results header ──────────────
+  const authHdr = (email.authResults || '') + ' ' + (email.arcAuthResults || '');
+  const spfHdr  = email.receivedSpf || '';
+
+  if (authHdr || spfHdr) {
+    // SPF — extract result token after 'spf='
+    const spfMatch = authHdr.match(/spf=(pass|fail|softfail|neutral|none|permerror|temperror)/i)
+                  || spfHdr.match(/^(pass|fail|softfail|neutral|none)/i);
+    const spfResult = spfMatch ? spfMatch[1].toLowerCase() : null;
+
+    if (spfResult === 'fail' || spfResult === 'permerror') {
+      penalty += 40;
+      issues.push(`SPF: FAIL — sending server not authorised for domain "${domain}"`);
+    } else if (spfResult === 'softfail') {
+      penalty += 20;
+      issues.push(`SPF: SOFTFAIL — sending server weakly unauthorised for domain "${domain}"`);
+    } else if (spfResult === 'pass') {
+      // SPF passed — small trust bonus (offset score slightly)
+      penalty -= 5;
+    }
+
+    // DKIM — extract result token after 'dkim='
+    const dkimMatch  = authHdr.match(/dkim=(pass|fail|neutral|none|permerror|temperror)/i);
+    const dkimResult = dkimMatch ? dkimMatch[1].toLowerCase() : null;
+
+    if (dkimResult === 'fail' || dkimResult === 'permerror') {
+      penalty += 35;
+      issues.push('DKIM: FAIL — email signature invalid or missing, message may be tampered');
+    } else if (dkimResult === 'none') {
+      penalty += 10;
+      issues.push('DKIM: NONE — no digital signature present on this email');
+    } else if (dkimResult === 'pass') {
+      penalty -= 5;
+    }
+
+    // DMARC — extract result token after 'dmarc='
+    const dmarcMatch  = authHdr.match(/dmarc=(pass|fail|none|quarantine|reject)/i);
+    const dmarcResult = dmarcMatch ? dmarcMatch[1].toLowerCase() : null;
+
+    if (dmarcResult === 'fail') {
+      penalty += 45;
+      issues.push('DMARC: FAIL — sender domain policy violated, likely spoofed identity');
+    } else if (dmarcResult === 'none') {
+      penalty += 5;
+      issues.push('DMARC: NONE — domain has no DMARC policy (unprotected sender)');
+    } else if (dmarcResult === 'pass') {
+      penalty -= 5;
+    }
+
+    // DKIM domain alignment — check if signing domain matches From domain
+    const dkimDomainMatch = authHdr.match(/dkim=pass\s+header\.i=@([\w.-]+)/i);
+    if (dkimDomainMatch) {
+      const signingDomain = dkimDomainMatch[1].toLowerCase();
+      if (domain && !domain.endsWith(signingDomain) && !signingDomain.endsWith(domain)) {
+        penalty += 25;
+        issues.push(`DKIM: Domain mismatch — signed by "${signingDomain}" but From is "${domain}"`);
+      }
+    }
+  } else {
+    // No auth headers at all — fall back to pattern-based heuristics
+    const typoPatterns = [/paypa[l1]\.com/, /go+gle\.com/, /amaz[o0]n\.com/,
+                          /micros[o0]ft\.com/, /app[l1]e\.com/, /faceb[o0]{2}k\.com/];
+    if (typoPatterns.some(p => p.test(domain))) {
+      penalty += 45;
+      issues.push(`SPF: Likely spoofed domain "${domain}" (typosquatting detected)`);
+    }
+
+    if (FREE_DOMAINS.includes(domain) &&
+        (email.subject || '').match(/bank|paypal|amazon|microsoft|apple|netflix/i)) {
+      penalty += 30;
+      issues.push('DKIM: Business name in subject sent from free email provider');
+    }
+
+    const displayName = from.split('<')[0].trim().toLowerCase();
+    const brands      = ['paypal','amazon','microsoft','apple','google','netflix','hsbc','barclays'];
+    brands.forEach(brand => {
+      if (displayName.includes(brand) && !domain.includes(brand)) {
+        penalty += 40;
+        issues.push(`DMARC: Display name impersonation — claims to be "${brand}" but domain is "${domain}"`);
+      }
+    });
   }
 
-  // Free provider sending as business
-  if (FREE_DOMAINS.includes(domain) &&
-      (email.subject || '').match(/bank|paypal|amazon|microsoft|apple|netflix/i)) {
-    penalty += 30;
-    issues.push(`DKIM: Business name in subject from free email provider`);
-  }
-
-  // Mismatch between display name and actual email
-  const displayName = from.split('<')[0].trim().toLowerCase();
-  if (displayName.includes('paypal') && !domain.includes('paypal')) {
-    penalty += 40; issues.push('DMARC: Display name mismatch — sender impersonation detected');
-  }
-  if (displayName.includes('amazon') && !domain.includes('amazon')) {
-    penalty += 40; issues.push('DMARC: Display name mismatch — sender impersonation detected');
-  }
-  if (displayName.includes('microsoft') && !domain.includes('microsoft')) {
-    penalty += 40; issues.push('DMARC: Display name mismatch — sender impersonation detected');
-  }
-
-  return { penalty, issues };
+  return { penalty: Math.max(penalty, 0), issues };
 }
 
+// ── Dangerous attachment extensions ──────────────────────────
+const DANGEROUS_EXTENSIONS = [
+  'exe','bat','cmd','com','msi','ps1','vbs','js','jse','wsf','wsh',  // executables/scripts
+  'scr','pif','application','gadget','hta',                           // Windows-specific
+  'jar','py','rb','pl',                                               // runtimes
+  'zip','rar','7z','tar','gz','iso','img',                           // archives (often wrap malware)
+  'doc','docm','xls','xlsm','ppt','pptm',                           // macro-enabled Office
+  'html','htm','svg',                                                 // can contain scripts
+  'lnk','url'                                                        // shortcut files
+];
+
+const SUSPICIOUS_EXTENSIONS = [
+  'pdf',    // can contain embedded JS
+  'docx','xlsx','pptx',  // modern Office (macros rare but possible)
+  'rtf',    // can exploit Word parser
+  'odt','ods'
+];
+
+// Double-extension pattern — e.g. "invoice.pdf.exe"
+const DOUBLE_EXT_RE = /\.\w{2,4}\.(exe|bat|cmd|scr|vbs|js|pif|com)$/i;
+
+function scanAttachments(email) {
+  const attachments = email.attachments || [];
+  if (attachments.length === 0) return { penalty: 0, issues: [], details: [] };
+
+  let   penalty = 0;
+  const issues  = [];
+  const details = [];
+
+  for (const att of attachments) {
+    const name = (att.filename || '').toLowerCase();
+    const ext  = name.split('.').pop() || '';
+    const sizeMB = ((att.size || 0) / 1024 / 1024).toFixed(2);
+
+    let risk = 'clean';
+
+    if (DOUBLE_EXT_RE.test(name)) {
+      penalty += 60;
+      risk = 'dangerous';
+      issues.push(`Attachment: double-extension disguise detected — "${att.filename}"`);
+    } else if (DANGEROUS_EXTENSIONS.includes(ext)) {
+      penalty += 40;
+      risk = 'dangerous';
+      issues.push(`Attachment: dangerous file type ".${ext}" — "${att.filename}"`);
+    } else if (SUSPICIOUS_EXTENSIONS.includes(ext)) {
+      penalty += 10;
+      risk = 'suspicious';
+      issues.push(`Attachment: potentially risky file type ".${ext}" — "${att.filename}"`);
+    }
+
+    // Flag very large attachments from unknown senders (>10MB) — unusual for phishing
+    // but flag zero-byte attachments (can be used to trigger parser bugs)
+    if (att.size === 0 && ext !== '') {
+      penalty += 15;
+      risk = risk === 'clean' ? 'suspicious' : risk;
+      issues.push(`Attachment: zero-byte file — "${att.filename}" (possible parser exploit)`);
+    }
+
+    details.push({
+      filename:  att.filename,
+      mimeType:  att.mimeType,
+      size:      att.size,
+      sizeMB,
+      extension: ext,
+      risk
+    });
+  }
+
+  return { penalty: Math.min(penalty, 80), issues, details };
+}
+const TRUSTED_DOMAINS = [
+  'google.com', 'googlemail.com', 'accounts.google.com', 'mail.google.com',
+  'microsoft.com', 'outlook.com', 'apple.com', 'amazon.com', 'amazon.co.uk',
+  'paypal.com', 'linkedin.com', 'github.com', 'twitter.com', 'facebook.com',
+  'netflix.com', 'spotify.com', 'dropbox.com', 'zoom.us', 'slack.com'
+];
+
+const SYSTEM_SENDERS = /mailer-daemon|postmaster|delivery.*subsystem|mail.*delivery/i;
+
 function analyseEmail(email) {
+  const fromLower    = (email.from || '').toLowerCase();
+  const senderDomain = (fromLower.match(/@([\w.-]+)/) || [])[1] || '';
+
+  if (SYSTEM_SENDERS.test(fromLower)) {
+    return { emailId: email.id, level: 'safe', score: 0,
+             reasons: ['System delivery notification'],
+             mlResult: { label: 'safe', confidence: 0 },
+             nlpFeatures: {}, authDetails: {},
+             scannedAt: new Date().toISOString() };
+  }
+  if (TRUSTED_DOMAINS.some(d => senderDomain === d || senderDomain.endsWith('.' + d))) {
+    const cappedResult = analyseEmailUncapped(email);
+    cappedResult.score = Math.min(cappedResult.score, 25);
+    cappedResult.level = cappedResult.score >= 30 ? 'suspicious' : 'safe';
+    return cappedResult;
+  }
+
+  return analyseEmailUncapped(email);
+}
+
+// analyseEmailUncapped — synchronous, no external API calls
+function analyseEmailUncapped(email) {
   const reasons = [];
   let   score   = 0;
   const bodyLower    = ((email.body || '') + ' ' + (email.subject || '')).toLowerCase();
-  const senderDomain = (email.from.match(/@([\w.-]+)/) || [])[1] || '';
+  const senderDomain = ((email.from || '').match(/@([\w.-]+)/) || [])[1] || '';
 
-  // Layer 1: Phishing keywords (rule-based)
+  // Layer 1: Phishing keywords
   PHISHING_KEYWORDS.forEach(kw => {
     if (bodyLower.includes(kw)) { score += 20; reasons.push(`Phishing keyword: "${kw}"`); }
   });
 
-  // Layer 2: Suspicious links
+  // Layer 2: Suspicious link patterns (regex)
   (email.links || []).forEach(link => {
     SUSPICIOUS_DOMAINS.forEach(pat => {
       if (pat.test(link)) { score += 35; reasons.push(`Suspicious domain in link: ${link}`); }
@@ -78,8 +243,6 @@ function analyseEmail(email) {
       score += 40; reasons.push(`IP-address URL detected: ${link}`);
     }
   });
-
-  // Layer 3: Urgency language
   ['urgent','immediately','expire','suspended','locked','warning','alert']
     .forEach(w => { if (bodyLower.includes(w)) { score += 10; reasons.push(`Urgency word: "${w}"`); } });
 
@@ -94,12 +257,12 @@ function analyseEmail(email) {
     score += 15; reasons.push(`High link count (${email.links.length})`);
   }
 
-  // Layer 6: SPF/DKIM/DMARC
+  // Layer 6: Real SPF/DKIM/DMARC header parsing
   const auth = checkSenderAuthentication(email);
   score += auth.penalty;
   reasons.push(...auth.issues);
 
-  // Layer 7: Naive Bayes ML classification
+  // Layer 7: Naive Bayes ML
   const mlText   = `${email.subject || ''} ${(email.body || '').substring(0, 500)}`;
   const mlResult = classifyText(mlText);
   if (mlResult.label === 'phishing' && mlResult.confidence > 0.6) {
@@ -108,7 +271,7 @@ function analyseEmail(email) {
     reasons.push(`ML Classifier: phishing detected (confidence ${(mlResult.confidence * 100).toFixed(0)}%)`);
   }
 
-  // Layer 8: NLP analysis
+  // Layer 8: NLP
   const nlp = extractNLPFeatures(bodyLower);
   if (nlp.hasUrgencyLanguage) {
     score += 8; reasons.push(`NLP: High urgency language density (${nlp.urgencyCount} markers)`);
@@ -117,21 +280,28 @@ function analyseEmail(email) {
     score += 5; reasons.push('NLP: High word repetition (typical of spam)');
   }
 
+  // Layer 9: Attachment scanning
+  const attScan = scanAttachments(email);
+  score += attScan.penalty;
+  reasons.push(...attScan.issues);
+
   const level = score >= 60 ? 'dangerous' : score >= 30 ? 'suspicious' : 'safe';
 
   return {
-    emailId:   email.id,
+    emailId:           email.id,
     level,
-    score:     Math.min(score, 100),
-    reasons:   [...new Set(reasons)], // deduplicate
+    score:             Math.min(score, 100),
+    reasons:           [...new Set(reasons)],
     mlResult,
-    nlpFeatures: nlp,
-    scannedAt: new Date().toISOString()
+    nlpFeatures:       nlp,
+    authDetails:       { raw: email.authResults || '', issues: auth.issues },
+    attachmentDetails: attScan.details,
+    scannedAt:         new Date().toISOString()
   };
 }
 
 function scanEmails(emails) {
-  return emails.map(email => ({ ...email, threat: analyseEmail(email) }));
+  return emails.map(email => analyseEmail(email));
 }
 
 module.exports = { analyseEmail, scanEmails };

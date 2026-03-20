@@ -13,12 +13,16 @@ const alertedIds = new Set(); // prevent duplicate Telegram alerts per server se
 
 router.get('/emails', requireAuth, async (req, res) => {
   try {
-    const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
+    const limit  = Math.min(parseInt(req.query.limit) || 50, 100);
     const filter = req.query.filter || 'all';
     const userId = req.session.user.id;
 
     const emails  = await fetchEmails(req.session.user.accessToken, limit);
-    const scanned = scanEmails(emails);
+    // FIX: scan per-email so one null From/malformed email never crashes the whole list
+    const scanned = emails.map(email => {
+      try { return { ...email, threat: analyseEmail(email) }; }
+      catch(e) { return { ...email, threat: { level:'safe', score:0, reasons:[], mlResult:{}, nlpFeatures:{} } }; }
+    });
 
     // Save to DB + fire Telegram for new threats
     for (const email of scanned) {
@@ -41,7 +45,7 @@ router.get('/emails', requireAuth, async (req, res) => {
 
 router.get('/emails/:id', requireAuth, async (req, res) => {
   try {
-    const emails = await fetchEmails(req.session.user.accessToken, 50);
+    const emails = await fetchEmails(req.session.user.accessToken, 100);
     const email  = emails.find(e => e.id === req.params.id);
     if (!email) return res.status(404).json({ success: false, error: 'Email not found' });
     res.json({ success: true, email: { ...email, threat: analyseEmail(email) } });

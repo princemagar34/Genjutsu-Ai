@@ -3,11 +3,12 @@
 // ============================================================
 require('dotenv').config();
 
-const express  = require('express');
-const session  = require('express-session');
-const cors     = require('cors');
-const passport = require('./config/passport');
-const path     = require('path');
+const express      = require('express');
+const session      = require('express-session');
+const cors         = require('cors');
+const passport     = require('./config/passport');
+const path         = require('path');
+const SQLiteStore  = require('connect-sqlite3')(session); // FIX: persistent session store
 
 const authRoutes          = require('./routes/auth');
 const emailRoutes         = require('./routes/emails');
@@ -35,6 +36,8 @@ app.use(session({
   secret:            process.env.SESSION_SECRET || 'genjutsu_dev_secret_change_this',
   resave:            false,
   saveUninitialized: false,
+  // FIX: persist sessions to SQLite so users stay logged in after server restarts
+  store: new SQLiteStore({ db: 'sessions.db', dir: './database' }),
   cookie: {
     secure:   process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -73,7 +76,7 @@ app.get('*', (req, res) =>
 // ── Start ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
   const tg  = process.env.TELEGRAM_BOT_TOKEN  ? '✅ Connected'            : '❌ Not set';
-  const ai  = process.env.GEMINI_API_KEY ? '✅ Connected'            : '❌ Not set (AI chat disabled)';
+  const ai  = process.env.GROQ_API_KEY   ? '✅ Connected'            : '❌ Not set (AI chat disabled)';
   const adm = process.env.ADMIN_EMAIL         ? `✅ ${process.env.ADMIN_EMAIL}` : '❌ Not set';
   console.log(`\n🛡️  Genjutsu v3 running!`);
   console.log(`   App      →  http://localhost:${PORT}`);

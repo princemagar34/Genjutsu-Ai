@@ -78,13 +78,28 @@ db.exec(`
     session_id     TEXT PRIMARY KEY,
     user_id        TEXT,
     email_id       TEXT,
+    thread_id      TEXT,
+    message_id     TEXT,
+    references_hdr TEXT,
     sender_email   TEXT,
     subject        TEXT,
     started_at     TEXT DEFAULT (datetime('now')),
     replies_sent   INTEGER DEFAULT 0,
     minutes_wasted INTEGER DEFAULT 0,
+    last_reply_at  TEXT,
     status         TEXT DEFAULT 'active',
     FOREIGN KEY (user_id) REFERENCES users(user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS honeypot_messages (
+    message_id   TEXT PRIMARY KEY,
+    session_id   TEXT NOT NULL,
+    direction    TEXT NOT NULL CHECK(direction IN ('inbound','outbound')),
+    from_address TEXT,
+    body         TEXT,
+    sent_at      TEXT DEFAULT (datetime('now')),
+    gmail_msg_id TEXT,
+    FOREIGN KEY (session_id) REFERENCES honeypot_sessions(session_id)
   );
 
   CREATE TABLE IF NOT EXISTS user_settings (
@@ -111,6 +126,36 @@ if (!db.prepare('SELECT model_id FROM ml_models WHERE model_id = ?').get('model-
   `).run('model-v1', 'Genjutsu Naive Bayes Classifier', '1.0.0', 0.89, 1);
 }
 
+// ── Migrations ────────────────────────────────────────────────
+// Safe to run on every startup — ALTER TABLE silently ignored if column exists
+[
+  // Honeypot columns
+  'ALTER TABLE honeypot_sessions ADD COLUMN message_id            TEXT DEFAULT NULL',
+  'ALTER TABLE honeypot_sessions ADD COLUMN references_hdr        TEXT DEFAULT NULL',
+  'ALTER TABLE honeypot_sessions ADD COLUMN last_processed_msg_id TEXT DEFAULT NULL',
+  // honeypot_messages table — safe no-op if table already exists via CREATE TABLE IF NOT EXISTS above
+  `CREATE TABLE IF NOT EXISTS honeypot_messages (
+    message_id   TEXT PRIMARY KEY,
+    session_id   TEXT NOT NULL,
+    direction    TEXT NOT NULL CHECK(direction IN ('inbound','outbound')),
+    from_address TEXT,
+    body         TEXT,
+    sent_at      TEXT DEFAULT (datetime('now')),
+    gmail_msg_id TEXT,
+    FOREIGN KEY (session_id) REFERENCES honeypot_sessions(session_id)
+  )`,
+  // SPF/DKIM/DMARC real header results stored per email
+  'ALTER TABLE emails ADD COLUMN spf_result   TEXT DEFAULT NULL',
+  'ALTER TABLE emails ADD COLUMN dkim_result  TEXT DEFAULT NULL',
+  'ALTER TABLE emails ADD COLUMN dmarc_result TEXT DEFAULT NULL',
+  'ALTER TABLE emails ADD COLUMN auth_raw     TEXT DEFAULT NULL',
+  // URL pattern scan results stored per email (regex-based, no external API)
+  'ALTER TABLE scan_results ADD COLUMN url_scan_results    TEXT DEFAULT NULL',
+  // Attachment scan results
+  'ALTER TABLE scan_results ADD COLUMN attachment_scan     TEXT DEFAULT NULL',
+  'ALTER TABLE emails       ADD COLUMN has_attachment      INTEGER DEFAULT 0',
+].forEach(sql => { try { db.prepare(sql).run(); } catch (_) {} });
+
 // ── Helpers ──────────────────────────────────────────────────
 
 function upsertUser(user) {
@@ -131,23 +176,40 @@ function saveEmailScan(email, threat, userId) {
   const scanId  = `scan-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
   const alertId = `alert-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
+  // Parse SPF/DKIM/DMARC results out of authDetails for storage
+  const authRaw   = threat.authDetails?.raw || '';
+  const spfResult  = (authRaw.match(/spf=(pass|fail|softfail|neutral|none)/i)  || [])[1] || null;
+  const dkimResult = (authRaw.match(/dkim=(pass|fail|neutral|none)/i)           || [])[1] || null;
+  const dmarcResult= (authRaw.match(/dmarc=(pass|fail|none)/i)                  || [])[1] || null;
+
   db.prepare(`
     INSERT OR REPLACE INTO emails
       (email_id, user_id, gmail_message_id, sender_email, subject, body_text,
-       received_date, is_phishing, confidence_score, scanned_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       received_date, is_phishing, confidence_score, scanned_at,
+       spf_result, dkim_result, dmarc_result, auth_raw, has_attachment)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?)
   `).run(emailId, userId, email.id, email.from, email.subject,
          (email.body || '').substring(0, 1000),
-         email.date, threat.level !== 'safe' ? 1 : 0, threat.score / 100);
+         email.date, threat.level !== 'safe' ? 1 : 0, threat.score / 100,
+         spfResult, dkimResult, dmarcResult, authRaw.substring(0, 500),
+         (email.attachments || []).length > 0 ? 1 : 0);
+
+  // Collect suspicious URLs found by regex scan
+  const suspiciousUrls = (email.links || []).filter(link =>
+    /paypa1\.com|g00gle\.com|amaz0n\.com|micros0ft\.com|secure-login\.|account-verify\.|login-confirm\.|verify-account\.|https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/.test(link)
+  );
 
   db.prepare(`
     INSERT OR REPLACE INTO scan_results
-      (scan_id, email_id, scanner_type, threat_detected, threat_type, confidence_level, details)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (scan_id, email_id, scanner_type, threat_detected, threat_type,
+       confidence_level, details, url_scan_results, attachment_scan)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(scanId, emailId, 'multi-layer-nlp',
          threat.level !== 'safe' ? 1 : 0,
          threat.level, threat.score / 100,
-         JSON.stringify(threat.reasons));
+         JSON.stringify(threat.reasons),
+         JSON.stringify(suspiciousUrls),
+         JSON.stringify(threat.attachmentDetails || []));
 
   if (threat.level !== 'safe') {
     db.prepare(`
@@ -232,14 +294,30 @@ function updateSettings(userId, updates) {
 function saveHoneypotSession(session) {
   db.prepare(`
     INSERT OR REPLACE INTO honeypot_sessions
-      (session_id, user_id, email_id, sender_email, subject, replies_sent, minutes_wasted, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(session.session_id, session.user_id, session.email_id,
-         session.sender_email, session.subject,
-         session.replies_sent, session.minutes_wasted, session.status || 'active');
+      (session_id, user_id, email_id, thread_id, message_id, references_hdr,
+       sender_email, subject, replies_sent, minutes_wasted, started_at, last_reply_at, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    session.session_id, session.user_id, session.email_id,
+    session.thread_id    || null,
+    session.message_id   || null,   // original email Message-ID for In-Reply-To
+    session.references_hdr || null, // References header chain
+    session.sender_email, session.subject,
+    session.replies_sent, session.minutes_wasted,
+    session.started_at     || new Date().toISOString(),
+    session.last_reply_at  || new Date().toISOString(),
+    session.status || 'active'
+  );
 }
 
-function getHoneypotSessions(userId) {
+function getHoneypotSessions(userId, includeEnded = false) {
+  // FIX: includeEnded=true used by victimsProtected count (needs ended sessions too)
+  if (includeEnded) {
+    return db.prepare(`
+      SELECT * FROM honeypot_sessions WHERE user_id=?
+      ORDER BY started_at DESC
+    `).all(userId);
+  }
   return db.prepare(`
     SELECT * FROM honeypot_sessions WHERE user_id=? AND status='active'
     ORDER BY started_at DESC
@@ -248,6 +326,66 @@ function getHoneypotSessions(userId) {
 
 function endHoneypotSession(sessionId) {
   db.prepare("UPDATE honeypot_sessions SET status='ended' WHERE session_id=?").run(sessionId);
+}
+
+// FIX: new function — persists final minutes_wasted and status when a session ends
+function updateHoneypotSession(sessionId, fields = {}) {
+  const allowed = ['minutes_wasted', 'replies_sent', 'status', 'last_reply_at',
+                   'references_hdr', 'last_processed_msg_id'];
+  const filtered = Object.fromEntries(
+    Object.entries(fields).filter(([k]) => allowed.includes(k))
+  );
+  if (!Object.keys(filtered).length) return;
+  const setClauses = Object.keys(filtered).map(k => `${k} = ?`).join(', ');
+  db.prepare(`UPDATE honeypot_sessions SET ${setClauses} WHERE session_id = ?`)
+    .run(...Object.values(filtered), sessionId);
+}
+
+// ── Get a single honeypot session by ID (used by admin terminate) ──
+function getHoneypotSessionById(sessionId) {
+  return db.prepare('SELECT * FROM honeypot_sessions WHERE session_id = ?').get(sessionId);
+}
+
+// ── Get ALL honeypot sessions across all users (admin view) ────
+function getAllHoneypotSessions() {
+  return db.prepare(`
+    SELECT h.*, u.email as user_email, u.username as user_name
+    FROM honeypot_sessions h
+    LEFT JOIN users u ON h.user_id = u.user_id
+    ORDER BY h.started_at DESC
+  `).all();
+}
+
+// ── Save a single honeypot message (inbound from scammer OR outbound from Honeypot) ──
+// direction: 'inbound'  = scammer's email received
+//            'outbound' = Honeypot's reply sent
+function saveHoneypotMessage({ sessionId, direction, fromAddress, body, gmailMsgId }) {
+  const id = `hpm-${Date.now()}-${Math.random().toString(36).substr(2, 7)}`;
+  db.prepare(`
+    INSERT INTO honeypot_messages
+      (message_id, session_id, direction, from_address, body, sent_at, gmail_msg_id)
+    VALUES (?, ?, ?, ?, ?, datetime('now'), ?)
+  `).run(id, sessionId, direction, fromAddress || '', (body || '').substring(0, 2000), gmailMsgId || null);
+}
+
+// ── Get all messages for a session, oldest first ──────────────
+function getHoneypotMessages(sessionId) {
+  return db.prepare(`
+    SELECT * FROM honeypot_messages
+    WHERE session_id = ?
+    ORDER BY sent_at ASC
+  `).all(sessionId);
+}
+
+// ── Get messages for multiple sessions at once (admin bulk load) ──
+function getHoneypotMessagesBulk(sessionIds) {
+  if (!sessionIds || sessionIds.length === 0) return [];
+  const placeholders = sessionIds.map(() => '?').join(',');
+  return db.prepare(`
+    SELECT * FROM honeypot_messages
+    WHERE session_id IN (${placeholders})
+    ORDER BY session_id, sent_at ASC
+  `).all(...sessionIds);
 }
 
 // ── Admin helpers ────────────────────────────────────────────
@@ -271,12 +409,14 @@ function getAllThreats(limit = 100) {
 
 function getSystemStats() {
   return {
-    totalUsers:    db.prepare('SELECT COUNT(*) as c FROM users').get().c,
-    totalEmails:   db.prepare('SELECT COUNT(*) as c FROM emails').get().c,
-    totalThreats:  db.prepare('SELECT COUNT(*) as c FROM emails WHERE is_phishing=1').get().c,
-    totalHoneypot: db.prepare('SELECT COUNT(*) as c FROM honeypot_sessions').get().c,
-    totalAlerts:   db.prepare('SELECT COUNT(*) as c FROM alerts').get().c,
-    activeModel:   db.prepare('SELECT * FROM ml_models WHERE is_active=1 LIMIT 1').get()
+    totalUsers:          db.prepare('SELECT COUNT(*) as c FROM users').get().c,
+    totalEmails:         db.prepare('SELECT COUNT(*) as c FROM emails').get().c,
+    totalThreats:        db.prepare('SELECT COUNT(*) as c FROM emails WHERE is_phishing=1').get().c,
+    totalHoneypot:       db.prepare('SELECT COUNT(*) as c FROM honeypot_sessions').get().c,          // global (admin view)
+    activeHoneypot:      db.prepare("SELECT COUNT(*) as c FROM honeypot_sessions WHERE status='active'").get().c, // FIX: active only
+    totalMinutesWasted:  db.prepare('SELECT COALESCE(SUM(minutes_wasted),0) as c FROM honeypot_sessions').get().c, // FIX: real total
+    totalAlerts:         db.prepare('SELECT COUNT(*) as c FROM alerts').get().c,
+    activeModel:         db.prepare('SELECT * FROM ml_models WHERE is_active=1 LIMIT 1').get()
   };
 }
 
@@ -284,6 +424,8 @@ module.exports = {
   db, upsertUser, saveEmailScan, getAlerts, markAlertRead, markAllAlertsRead,
   getScanHistory, getReportData, getSettings, updateSettings,
   saveHoneypotSession, getHoneypotSessions, endHoneypotSession,
+  updateHoneypotSession, getHoneypotSessionById, getAllHoneypotSessions,
+  saveHoneypotMessage, getHoneypotMessages, getHoneypotMessagesBulk,
   getAllUsers, getAllThreats, getSystemStats,
   getAdminByEmail, getAllAdmins, createAdmin,
   updateAdminRole, updateAdminLastLogin, deleteAdmin, toggleAdminStatus,

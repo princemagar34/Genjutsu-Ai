@@ -73,12 +73,7 @@ function generateUserReport(res, user, reportData) {
     }
   }
 
-  // ── FOOTER ────────────────────────────────────────────────────
-  doc.moveDown(3);
-  doc.fontSize(8).fillColor('#94a3b8')
-    .text('─────────────────────────────────────────────────────────────────────────────', { align: 'center' })
-    .text('Genjutsu Gmail Security System  |  CS6P05NI Capstone Project', { align: 'center' })
-    .text('Islington College / London Metropolitan University  |  Confidential', { align: 'center' });
+  // Footer removed
 
   doc.end();
 }
