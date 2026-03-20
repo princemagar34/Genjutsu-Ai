@@ -66,7 +66,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // ── Static files ──────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Frontend is served by Cloudflare Workers — not here
 app.use('/admin', express.static(path.join(__dirname, 'admin/public')));
 
 // ── Routes ────────────────────────────────────────────────────
@@ -85,10 +85,8 @@ app.get('/admin', (req, res) =>
   res.sendFile(path.join(__dirname, 'admin/public/index.html'))
 );
 
-// ── SPA fallback ──────────────────────────────────────────────
-app.get('*', (req, res) =>
-  res.sendFile(path.join(__dirname, '../frontend/index.html'))
-);
+// ── 404 fallback ──────────────────────────────────────────────
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ── Start ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
