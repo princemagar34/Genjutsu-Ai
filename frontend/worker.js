@@ -1,39 +1,55 @@
 // worker.js — Genjutsu Cloudflare Worker
-// Serves static frontend files (index.html, styles.css, script.js)
+// Serves static frontend files via env.ASSETS (modern Workers Assets API)
+// Proxies /admin, /auth, /api routes to the Express backend on Cloud Run
 
-import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
-import manifestJSON from '__STATIC_CONTENT_MANIFEST';
-
-const assetManifest = JSON.parse(manifestJSON);
+const BACKEND_PREFIXES = ['/admin', '/auth', '/api'];
 
 export default {
   async fetch(request, env, ctx) {
-    try {
-      // Try to serve a static asset
-      return await getAssetFromKV(
-        { request, waitUntil: ctx.waitUntil.bind(ctx) },
-        {
-          ASSET_NAMESPACE: env.__STATIC_CONTENT,
-          ASSET_MANIFEST:  assetManifest,
-        }
-      );
-    } catch (e) {
-      // For any unmatched route, serve index.html (SPA fallback)
-      try {
-        const indexRequest = new Request(
-          new URL('/index.html', request.url).toString(),
-          request
-        );
-        return await getAssetFromKV(
-          { request: indexRequest, waitUntil: ctx.waitUntil.bind(ctx) },
-          {
-            ASSET_NAMESPACE: env.__STATIC_CONTENT,
-            ASSET_MANIFEST:  assetManifest,
+    const url = new URL(request.url);
+
+    // ── Proxy backend routes ──────────────────────────────────
+    // Any path starting with /admin, /auth, or /api goes straight
+    // to the Express backend — never touches static assets.
+    if (BACKEND_PREFIXES.some(prefix =>
+      url.pathname === prefix || url.pathname.startsWith(prefix + '/')
+    )) {
+      const backendBase = (env.BACKEND_HOST || '').replace(/\/$/, '');
+      const backendUrl  = backendBase + url.pathname + (url.search || '');
+
+      const backendRequest = new Request(backendUrl, {
+        method:   request.method,
+        headers:  request.headers,
+        body:     ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
+        redirect: 'manual',
+      });
+
+      const backendResponse = await fetch(backendRequest);
+
+      // Pass redirects (e.g. OAuth callbacks) straight through to the browser
+      if (backendResponse.status >= 300 && backendResponse.status < 400) {
+        return new Response(null, {
+          status:  backendResponse.status,
+          headers: {
+            'Location':   backendResponse.headers.get('location') || '/',
+            'Set-Cookie': backendResponse.headers.get('set-cookie') || ''
           }
-        );
-      } catch {
-        return new Response('Not Found', { status: 404 });
+        });
       }
+
+      return backendResponse;
+    }
+
+    // ── Static assets (frontend) ──────────────────────────────
+    // env.ASSETS is bound automatically by Wrangler when
+    // `assets = { directory = "./" }` is set in wrangler.toml.
+    // Falls back to index.html for SPA client-side routing.
+    try {
+      return await env.ASSETS.fetch(request);
+    } catch {
+      // SPA fallback — any unmatched path serves index.html
+      const indexUrl = new URL('/index.html', url.origin);
+      return await env.ASSETS.fetch(new Request(indexUrl.toString(), request));
     }
   }
 };

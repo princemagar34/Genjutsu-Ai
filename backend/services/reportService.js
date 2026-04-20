@@ -13,17 +13,23 @@ function generateUserReport(res, user, reportData) {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   doc.pipe(res);
 
-  const stats    = reportData.stats    || { total: 0, threats: 0, safe: 0 };
-  const honeypot = reportData.honeypot || { sessions: 0, minutes: 0 };
-  const emails   = reportData.emails   || [];
-  const threats  = emails.filter(e => e.is_phishing === 1 || e.is_phishing === true);
+  const stats  = reportData.stats || { total: 0, threats: 0, safe: 0 };
+  const emails = reportData.emails || [];
+  const threats = emails.filter(e => e.is_phishing === 1 || e.is_phishing === true);
+
+  // ── Nepal time formatter ──────────────────────────────────────
+  const nepalTime = new Date().toLocaleString('en-GB', {
+    timeZone: 'Asia/Kathmandu',
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
 
   // ── COVER BAND ────────────────────────────────────────────────
   doc.rect(0, 0, 595, 175).fill('#0f172a');
   doc.fontSize(26).fillColor('#f8fafc').text('Genjutsu Security Report', 50, 55, { align: 'center' });
   doc.fontSize(12).fillColor('#94a3b8').text('Gmail Security System — Per User Analysis', { align: 'center' });
   doc.moveDown(0.5);
-  doc.fontSize(10).fillColor('#64748b').text(`Generated: ${new Date().toLocaleString('en-GB')}`, { align: 'center' });
+  doc.fontSize(10).fillColor('#64748b').text(`Generated: ${nepalTime} (NPT)`, { align: 'center' });
 
   doc.y = 195;
 
@@ -41,39 +47,62 @@ function generateUserReport(res, user, reportData) {
   const threatRate = stats.total > 0
     ? ((stats.threats / stats.total) * 100).toFixed(1) + '%' : '0%';
 
-  infoRow(doc, 'Total Emails Scanned',  String(stats.total   || 0));
-  infoRow(doc, 'Threats Detected',      String(stats.threats || 0), '#ef4444');
-  infoRow(doc, 'Safe Emails',           String(safeCount),          '#10b981');
-  infoRow(doc, 'Threat Detection Rate', threatRate);
+  // Use effective counts from emails array (overrides applied)
+  const effectiveDangerous  = emails.filter(e => e.threat_type === 'dangerous').length;
+  const effectiveSuspicious = emails.filter(e => e.threat_type === 'suspicious').length;
+  const effectiveThreats    = effectiveDangerous + effectiveSuspicious;
+  const effectiveSafe       = emails.length - effectiveThreats;
+  const effectiveRate       = emails.length > 0
+    ? ((effectiveThreats / emails.length) * 100).toFixed(1) + '%' : '0%';
+
+  infoRow(doc, 'Total Emails Scanned',  String(emails.length));
+  infoRow(doc, 'Dangerous Emails',      String(effectiveDangerous),  '#ef4444');
+  infoRow(doc, 'Suspicious Emails',     String(effectiveSuspicious), '#f59e0b');
+  infoRow(doc, 'Safe Emails',           String(effectiveSafe),       '#10b981');
+  infoRow(doc, 'Threat Detection Rate', effectiveRate);
   doc.moveDown(1);
 
-  // ── HONEYPOT ACTIVITY ─────────────────────────────────────────
-  sectionHeader(doc, 'Honeypot Activity');
-  infoRow(doc, 'Scammer Sessions Engaged',       String(honeypot.sessions || 0));
-  infoRow(doc, 'Time Wasted for Scammers',       `${honeypot.minutes || 0} minutes`);
-  doc.moveDown(1);
+  // ── THREAT EMAILS LIST ───────────────────────────────────────
+  // Use effective level (override takes priority over scanner result).
+  // Exactly mirrors what user sees in Genjutsu — safe emails excluded.
+  const dangerous  = emails.filter(e => e.threat_type === 'dangerous');
+  const suspicious = emails.filter(e => e.threat_type === 'suspicious');
+  // Emails reclassified to safe are excluded entirely (not shown)
 
-  // ── THREAT DETAILS TABLE ──────────────────────────────────────
-  sectionHeader(doc, `Detected Threats  (${threats.length} found)`);
+  sectionHeader(doc, `Threat Emails  (${dangerous.length} dangerous · ${suspicious.length} suspicious)`);
 
-  if (threats.length === 0) {
+  if (dangerous.length === 0 && suspicious.length === 0) {
     doc.fontSize(11).fillColor('#10b981')
-      .text('No threats found in your scanned emails. Your inbox is clean!');
+      .text('No threats found. Your inbox is clean!');
   } else {
-    doc.moveDown(0.3);
-    drawTableHeader(doc);
-    threats.slice(0, 30).forEach((t, i) => {
-      if (doc.y > 730) { doc.addPage(); drawTableHeader(doc); }
-      drawTableRow(doc, i + 1, t);
-    });
-    if (threats.length > 30) {
-      doc.moveDown(0.5);
-      doc.fontSize(9).fillColor('#64748b')
-        .text(`... and ${threats.length - 30} more. Re-scan your inbox for the latest data.`);
+    // ── Dangerous ─────────────────────────────────────────────
+    if (dangerous.length > 0) {
+      doc.fontSize(10).fillColor('#ef4444').font('Helvetica-Bold')
+        .text(`DANGEROUS (${dangerous.length})`, 50, doc.y, { width: 495, align: 'center' });
+      doc.font('Helvetica');
+      doc.moveDown(0.3);
+      drawThreatTableHeader(doc);
+      dangerous.forEach((t, i) => {
+        if (doc.y > 720) { doc.addPage(); drawThreatTableHeader(doc); }
+        drawThreatTableRow(doc, i + 1, t);
+      });
+      doc.moveDown(1);
+    }
+
+    // ── Suspicious ────────────────────────────────────────────
+    if (suspicious.length > 0) {
+      if (doc.y > 680) doc.addPage();
+      doc.fontSize(10).fillColor('#f59e0b').font('Helvetica-Bold')
+        .text(`SUSPICIOUS (${suspicious.length})`, 50, doc.y, { width: 495, align: 'center' });
+      doc.font('Helvetica');
+      doc.moveDown(0.3);
+      drawThreatTableHeader(doc);
+      suspicious.forEach((t, i) => {
+        if (doc.y > 720) { doc.addPage(); drawThreatTableHeader(doc); }
+        drawThreatTableRow(doc, i + 1, t);
+      });
     }
   }
-
-  // Footer removed
 
   doc.end();
 }
@@ -94,36 +123,38 @@ function infoRow(doc, label, value, valueColor = '#1e293b') {
   doc.y = y + 16;
 }
 
-function drawTableHeader(doc) {
+// ── Threat table header ───────────────────────────────────────
+function drawThreatTableHeader(doc) {
   const y = doc.y;
-  doc.rect(50, y, 495, 20).fill('#1e293b');
+  doc.rect(50, y, 495, 20).fill('#0f172a');
   doc.fontSize(8).fillColor('#f8fafc').font('Helvetica-Bold')
-    .text('#',       56,  y + 5, { width: 18 })
-    .text('Subject', 78,  y + 5, { width: 185 })
-    .text('Sender',  268, y + 5, { width: 150 })
-    .text('Score',   423, y + 5, { width: 45 })
-    .text('Level',   473, y + 5, { width: 65 });
+    .text('#',        56,  y + 6, { width: 20 })
+    .text('Subject',  80,  y + 6, { width: 200 })
+    .text('Sender',   284, y + 6, { width: 155 })
+    .text('Score',    443, y + 6, { width: 45 })
+    .text('Level',    491, y + 6, { width: 60 });
   doc.font('Helvetica');
   doc.y = y + 24;
 }
 
-function drawTableRow(doc, index, threat) {
-  const y       = doc.y;
-  const bg      = index % 2 === 0 ? '#f8fafc' : '#ffffff';
-  const score   = Math.round((threat.confidence_score || 0) * 100);
-  const level   = threat.threat_type || 'phishing';
-  const subject = (threat.subject     || '(No Subject)').substring(0, 38);
-  const sender  = (threat.sender_email || 'Unknown').substring(0, 28);
+// ── Threat table row ──────────────────────────────────────────
+function drawThreatTableRow(doc, index, threat) {
+  const y      = doc.y;
+  const bg     = index % 2 === 0 ? '#f8fafc' : '#ffffff';
+  const score  = Math.round((threat.confidence_score || 0) * 100);
+  const level  = threat.threat_type || 'suspicious';
+  const subj   = (threat.subject      || '(No Subject)').substring(0, 38);
+  const sender = (threat.sender_email || 'Unknown').substring(0, 30);
   const scoreColor = score >= 60 ? '#ef4444' : '#f59e0b';
   const levelColor = level === 'dangerous' ? '#ef4444' : '#f59e0b';
 
   doc.rect(50, y - 1, 495, 17).fill(bg);
   doc.fontSize(8).fillColor('#334155')
-    .text(String(index), 56,  y + 2, { width: 18 })
-    .text(subject,       78,  y + 2, { width: 185 })
-    .text(sender,        268, y + 2, { width: 150 });
-  doc.fillColor(scoreColor).text(`${score}/100`, 423, y + 2, { width: 45 });
-  doc.fillColor(levelColor).text(level,          473, y + 2, { width: 65 });
+    .text(String(index), 56,  y + 3, { width: 20 })
+    .text(subj,          80,  y + 3, { width: 200 })
+    .text(sender,        284, y + 3, { width: 155 });
+  doc.fillColor(scoreColor).text(`${score}/100`, 443, y + 3, { width: 45 });
+  doc.fillColor(levelColor).text(level,          491, y + 3, { width: 60 });
   doc.y = y + 17;
 }
 

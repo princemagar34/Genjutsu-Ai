@@ -135,4 +135,47 @@ async function sendReply(accessToken, to, subject, body, threadOptions = {}) {
     });
 }
 
-module.exports = { fetchEmails, sendReply, getGmailClient };
+// Move a specific email to Gmail spam by adding SPAM label + removing INBOX
+async function moveToSpam(accessToken, gmailMsgId) {
+    const gmail = getGmailClient(accessToken);
+    await gmail.users.messages.modify({
+        userId: 'me',
+        id: gmailMsgId,
+        requestBody: {
+            addLabelIds:    ['SPAM'],
+            removeLabelIds: ['INBOX']
+        }
+    });
+}
+
+// Create a Gmail filter so ALL future emails from this sender go to spam
+async function createSpamFilter(accessToken, senderEmail) {
+    // Extract plain email address from "Name <email>" format
+    const match = senderEmail.match(/<([^>]+)>/) || senderEmail.match(/([^\s]+@[^\s]+)/);
+    const email = match ? match[1] : senderEmail;
+    if (!email || !email.includes('@')) return; // safety check
+
+    const gmail = getGmailClient(accessToken);
+    await gmail.users.settings.filters.create({
+        userId: 'me',
+        requestBody: {
+            criteria: { from: email },
+            action:   { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] }
+        }
+    });
+}
+
+// Undo spam: remove SPAM label and restore INBOX
+async function removeFromSpam(accessToken, gmailMsgId) {
+    const gmail = getGmailClient(accessToken);
+    await gmail.users.messages.modify({
+        userId: 'me',
+        id: gmailMsgId,
+        requestBody: {
+            addLabelIds:    ['INBOX'],
+            removeLabelIds: ['SPAM']
+        }
+    });
+}
+
+module.exports = { fetchEmails, sendReply, getGmailClient, moveToSpam, createSpamFilter, removeFromSpam };

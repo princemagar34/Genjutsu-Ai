@@ -35,53 +35,76 @@ function getFallbackReply(repliesSent) {
 }
 
 // ── AI-powered contextual reply generator ─────────────────────
-// Uses Gemini to craft a reply that directly responds to what the
-// scammer said — making it convincing and situation-specific
-async function generateAIReply(scammerMessage, subject, repliesSent) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return getFallbackReply(repliesSent);
+// Uses Groq (same provider as rest of Genjutsu) to craft replies
+// that READ the full conversation history before responding —
+// making each reply contextually aware of what the scammer said.
+// conversationHistory: array of { direction: 'inbound'|'outbound', body: string }
+async function generateAIReply(scammerMessage, subject, repliesSent, conversationHistory = [], userName = 'Nami', senderEmail = '') {
+  if (!process.env.GROQ_API_KEY) return getFallbackReply(repliesSent);
 
-  // Build persona context that escalates with each reply
   const stage = repliesSent === 0
-    ? 'initial interest — ask for more details'
+    ? 'initial interest — ask for more details about the offer'
     : repliesSent <= 2
-    ? 'excited but confused — ask clarifying questions, mention a solicitor nephew'
+    ? 'excited but confused — ask clarifying questions, mention your solicitor nephew'
     : repliesSent <= 4
-    ? 'eager but having banking trouble — suggest alternative methods, wrong account number'
-    : 'getting complicated — mention tax fees, need signed letters, tell them about church friends';
+    ? 'eager but having banking trouble — wrong account number, suggest an alternative method'
+    : 'getting complicated — mention tax fees, need signed letters, want your church friends to join';
 
-  const systemPrompt = `You are Honeypot, a friendly but confused 72-year-old retired teacher from Bristol, England.
-You are responding to a scam email as a honeypot to waste the scammer's time.
+  // ── CHANGE: Use first name only for the persona sign-off ─────
+  const firstName = userName.split(' ')[0] || userName;
+
+  const systemPrompt = `You are ${firstName}, a friendly but confused 72-year-old retired teacher from Bristol, England.
+You are responding to a scammer as a honeypot to waste their time as long as possible.
 Your goal is to seem genuinely interested but always create delays, confusion, and complications.
-Current conversation stage: ${stage} (reply number ${repliesSent + 1}).
+Current stage: ${stage} (this is reply number ${repliesSent + 1}).
 
 Rules:
-- Stay completely in character as Honeypot — warm, slightly naive, easily confused
-- Directly respond to what the scammer just said (don't ignore their message)
-- Always ask at least one question that requires a detailed answer
-- Add one complication (solicitor, banking issue, wrong details, tax question, etc.)
-- Keep it 3-5 sentences, conversational, no formal language
+- Read the ENTIRE conversation history carefully before replying
+- Directly respond to the scammer's latest message — reference specific things they said
+- Always ask at least one question that requires a detailed answer from them
+- Add one new complication per reply (solicitor, banking issue, wrong details, tax question, church friends, computer trouble, etc.)
+- Keep it 3-5 sentences, warm and conversational, slightly rambling
 - Never reveal you are AI or a honeypot
-- Sign off as "Honeypot"`;
+- NEVER start the email with "Dear Scammer", "Dear User", "Dear Sender" or any generic label
+- Start naturally, e.g. "Oh how wonderful!" or "Thank you so much for getting back to me!"
+- Sign off as "${firstName}"`;
 
-  const userPrompt = `The scammer sent me this email with subject "${subject}":
+  // ── Use real scammer email as inbound label, user's real first name as outbound ──
+  // senderEmail e.g. "evil@scammer.com" — strips display name wrapper if present
+  const scammerLabel = (senderEmail || '').replace(/.*<(.+)>/, '$1').trim() || 'Sender';
+  const historyText = conversationHistory.length > 0
+    ? '\n\nConversation so far:\n' + conversationHistory.map(m =>
+        `${m.direction === 'inbound' ? scammerLabel : firstName}: ${(m.body || '').substring(0, 300)}`
+      ).join('\n\n')
+    : '';
+
+  const userPrompt = `Email subject: "${subject}"${historyText}
+
+Scammer's latest message:
 "${(scammerMessage || '').substring(0, 600)}"
 
-Write my reply as Honeypot. Make it respond specifically to what they said.`;
+Write ${firstName}'s reply. Respond specifically to what they just said and add a complication. Do NOT start with "Dear Scammer", "Dear User", or any generic label.`;
 
   return new Promise((resolve) => {
     const payload = JSON.stringify({
-      contents: [{ parts: [{ text: `${systemPrompt}
-
-User: ${userPrompt}` }] }],
-      generationConfig: { maxOutputTokens: 200, temperature: 0.9 }
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt }
+      ],
+      max_tokens:  250,
+      temperature: 0.9
     });
 
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+      hostname: 'api.groq.com',
+      path:     '/openai/v1/chat/completions',
+      method:   'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'Authorization':  `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Length': Buffer.byteLength(payload)
+      }
     };
 
     const req = https.request(options, res => {
@@ -90,7 +113,11 @@ User: ${userPrompt}` }] }],
       res.on('end', () => {
         try {
           const parsed = JSON.parse(raw);
-          const text   = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (parsed.error) {
+            console.error('[Honeypot] Groq error:', parsed.error.message);
+            return resolve(getFallbackReply(repliesSent));
+          }
+          const text = parsed?.choices?.[0]?.message?.content;
           resolve(text ? text.trim() : getFallbackReply(repliesSent));
         } catch {
           resolve(getFallbackReply(repliesSent));
@@ -99,7 +126,7 @@ User: ${userPrompt}` }] }],
     });
 
     req.on('error', () => resolve(getFallbackReply(repliesSent)));
-    req.setTimeout(8000, () => { req.destroy(); resolve(getFallbackReply(repliesSent)); });
+    req.setTimeout(10000, () => { req.destroy(); resolve(getFallbackReply(repliesSent)); });
     req.write(payload);
     req.end();
   });
@@ -114,29 +141,49 @@ router.post('/honeypot/engage', requireAuth, async (req, res) => {
 
   try {
     // Generate AI reply contextual to the scammer's actual email content
-    const { emailBody } = req.body; // frontend should pass the email body/snippet
-    const reply     = await generateAIReply(emailBody || subject, subject, 0);
+    const { emailBody, messageId: gmailMessageId } = req.body;
+
+    // ── CHANGE: use first name only for persona sign-off ─────────
+    const fullName  = req.session.user.name || '';
+    const userName  = fullName.split(' ')[0] || req.session.user.email?.split('@')[0] || 'Nami';
+
+    const reply     = await generateAIReply(emailBody || subject, subject, 0, [], userName, actualRecipient);
     const sessionId = `hp-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-    await sendReply(req.session.user.accessToken, actualRecipient, `Re: ${subject}`, reply);
+    // ── CHANGE: Fix 3 — store the Re: subject in the session from the start ──
+    // Every subsequent poll reply reads session.subject, so storing it WITH
+    // the Re: prefix here means the subject never changes across the whole conversation.
+    const replySubject = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
+    await sendReply(
+      req.session.user.accessToken,
+      actualRecipient,
+      replySubject,
+      reply,
+      {
+        threadId:   threadId   || null,
+        inReplyTo:  gmailMessageId || null,
+        references: gmailMessageId || null
+      }
+    );
 
     const session = {
       session_id:    sessionId,
       user_id:       req.session.user.id,
       email_id:      emailId,
-      thread_id:     threadId || null,
+      thread_id:     threadId     || null,
+      message_id:    gmailMessageId || null,
       sender_email:  actualRecipient,
-      subject,
+      subject:       replySubject,  // ← CHANGE: store with Re: so all future poll replies use same subject
       replies_sent:  1,
       minutes_wasted: 0,
       started_at:    new Date().toISOString(),
       last_reply_at: new Date().toISOString(),
       status:        'active'
     };
-    saveHoneypotSession(session);
+    await saveHoneypotSession(session);
 
     // ── Save the scammer's original email as inbound message ──
-    saveHoneypotMessage({
+    await saveHoneypotMessage({
       sessionId,
       direction:   'inbound',
       fromAddress: actualRecipient,
@@ -145,7 +192,7 @@ router.post('/honeypot/engage', requireAuth, async (req, res) => {
     });
 
     // ── Save Honeypot's first reply as outbound message ───────
-    saveHoneypotMessage({
+    await saveHoneypotMessage({
       sessionId,
       direction:   'outbound',
       fromAddress: req.session.user.email,
@@ -169,8 +216,8 @@ router.post('/honeypot/engage', requireAuth, async (req, res) => {
 });
 
 // ── GET /honeypot/sessions ────────────────────────────────────
-router.get('/honeypot/sessions', requireAuth, (req, res) => {
-  const sessions = getHoneypotSessions(req.session.user.id);
+router.get('/honeypot/sessions', requireAuth, async (req, res) => {
+  const sessions = await getHoneypotSessions(req.session.user.id);
   const now      = Date.now();
 
   const enriched = sessions.map(s => {
@@ -214,7 +261,7 @@ const pollLock = new Set();
 
 // ── POST /honeypot/poll ───────────────────────────────────────
 router.post('/honeypot/poll', requireAuth, async (req, res) => {
-  const sessions = getHoneypotSessions(req.session.user.id);
+  const sessions = await getHoneypotSessions(req.session.user.id);
   const active   = sessions.filter(s => s.status === 'active');
 
   if (active.length === 0) return res.json({ success: true, checked: 0, replied: 0 });
@@ -300,9 +347,20 @@ router.post('/honeypot/poll', requireAuth, async (req, res) => {
           : (full.data.snippet || '');
       } catch { scammerText = latestScammerMsg.snippet || ''; }
 
-      // Generate AI reply contextual to what the scammer wrote
-      const nextReply  = await generateAIReply(scammerText, session.subject, session.replies_sent);
-      const newSubject = session.subject.startsWith('Re:') ? session.subject : `Re: ${session.subject}`;
+      // Fetch full conversation history so AI reads entire context before replying
+      let conversationHistory = [];
+      try {
+        const { getHoneypotMessages } = require('../database/db');
+        const msgs = await getHoneypotMessages(session.session_id);
+        conversationHistory = (msgs || []).map(m => ({ direction: m.direction, body: m.body }));
+      } catch { conversationHistory = []; }
+
+      // Generate AI reply — now with full conversation history for context
+      const pollFullName = req.session.user.name || '';
+      const pollUserName = pollFullName.split(' ')[0] || req.session.user.email?.split('@')[0] || 'Nami';
+      const nextReply  = await generateAIReply(scammerText, session.subject, session.replies_sent, conversationHistory, pollUserName, session.sender_email);
+      // ── CHANGE: subject already stored with Re: in session — use it directly, no recalculation ──
+      const newSubject = session.subject;
 
       // Get the scammer's latest Message-ID for In-Reply-To threading
       let latestMsgId = '';
@@ -328,12 +386,33 @@ router.post('/honeypot/poll', requireAuth, async (req, res) => {
         }
       );
 
-      updateHoneypotSession(session.session_id, {
+      await updateHoneypotSession(session.session_id, {
         replies_sent:          session.replies_sent + 1,
-        last_reply_at:         new Date().toISOString(),   // FIX: use actual send time, not scammer's message time
+        last_reply_at:         new Date().toISOString(),
         references_hdr:        newRefs,
-        last_processed_msg_id: latestScammerMsg.id         // FIX: track which message we replied to
+        last_processed_msg_id: latestScammerMsg.id
       });
+
+      // Save scammer's inbound message + our outbound reply to DB
+      // so the admin panel conversation log stays up to date
+      try {
+        await saveHoneypotMessage({
+          sessionId:   session.session_id,
+          direction:   'inbound',
+          fromAddress: session.sender_email,
+          body:        scammerText,
+          gmailMsgId:  latestScammerMsg.id
+        });
+        await saveHoneypotMessage({
+          sessionId:   session.session_id,
+          direction:   'outbound',
+          fromAddress: null,
+          body:        nextReply,
+          gmailMsgId:  null
+        });
+      } catch (saveErr) {
+        console.warn('[Honeypot] Could not save messages to DB:', saveErr.message);
+      }
 
       repliedTo++;
       results.push({
@@ -356,19 +435,46 @@ router.post('/honeypot/poll', requireAuth, async (req, res) => {
   res.json({ success: true, checked: active.length, replied: repliedTo, results });
 });
 
+// ── GET /honeypot/sessions/:sessionId/messages — user-facing ─
+// Returns conversation messages for a session so the frontend can
+// show the full honeypot chat inline without going to the admin panel.
+router.get('/honeypot/sessions/:sessionId/messages', requireAuth, async (req, res) => {
+  try {
+    const { getHoneypotMessages, getHoneypotSessionById } = require('../database/db');
+    // Verify this session belongs to the requesting user
+    const session = await getHoneypotSessionById(req.params.sessionId);
+    if (!session || session.user_id !== req.session.user.id) {
+      return res.status(404).json({ success: false, error: 'Session not found.' });
+    }
+    const messages = await getHoneypotMessages(req.params.sessionId);
+    res.json({
+      success: true,
+      messages: messages.map(m => ({
+        id:        m.message_id,
+        direction: m.direction,   // 'inbound' = scammer, 'outbound' = honeypot persona
+        from:      m.from_address,
+        body:      m.body,
+        sentAt:    m.sent_at
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ── DELETE /honeypot/sessions/:sessionId ─────────────────────
 router.delete('/honeypot/sessions/:sessionId', requireAuth, async (req, res) => {
-  const sessions = getHoneypotSessions(req.session.user.id);
+  const sessions = await getHoneypotSessions(req.session.user.id);
   const target   = sessions.find(s => s.session_id === req.params.sessionId);
 
   if (target && target.started_at) {
     const elapsedMinutes = Math.floor((Date.now() - new Date(target.started_at).getTime()) / 60000);
     if (typeof updateHoneypotSession === 'function') {
-      updateHoneypotSession(req.params.sessionId, { minutes_wasted: elapsedMinutes, status: 'ended' });
+      await updateHoneypotSession(req.params.sessionId, { minutes_wasted: elapsedMinutes, status: 'ended' });
     }
   }
 
-  endHoneypotSession(req.params.sessionId);
+  await endHoneypotSession(req.params.sessionId);
   res.json({ success: true, message: 'Session ended' });
 });
 

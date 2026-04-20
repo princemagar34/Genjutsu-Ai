@@ -2,11 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Genjutsu — Gmail Security System</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ── Hard mobile overflow fix ── */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; }
+        #loginScreen { overflow-x: hidden; }
+    </style>
 </head>
 <body>
 
@@ -63,22 +72,10 @@
                 <div class="portal-header">
                     <div class="portal-icon"><i class="fas fa-shield-alt"></i></div>
                     <h2>Welcome Back</h2>
-                    <p>Select your access type to continue</p>
+                    <p>Sign in to protect your Gmail inbox</p>
                 </div>
 
-                <!-- Role toggle -->
-                <div class="role-tabs">
-                    <button class="role-tab active" id="tabUser" onclick="switchLoginTab('user')">
-                        <i class="fas fa-user"></i>
-                        <span>User Login</span>
-                    </button>
-                    <button class="role-tab" id="tabAdmin" onclick="switchLoginTab('admin')">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Admin Login</span>
-                    </button>
-                </div>
-
-                <!-- USER PANEL -->
+                <!-- USER PANEL ONLY -->
                 <div id="panelUser" class="login-panel active">
                     <p class="panel-desc">
                         Sign in with your Google account to scan your Gmail inbox for phishing and other threats.
@@ -89,49 +86,13 @@
                         <div class="perm-item"><i class="fas fa-check-circle"></i> Engage scammers with honeypot</div>
                         <div class="perm-item"><i class="fas fa-check-circle"></i> Download PDF security report</div>
                     </div>
-                    <a href="https://genjutsu-ai-production.up.railway.app/auth/google" class="btn-google">
+                    <a href="/auth/google" class="btn-google">
                         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" width="20">
                         Continue with Google
                     </a>
                     <p class="login-note">
                         <i class="fas fa-lock"></i>
                         Your Gmail data is never stored beyond your session.
-                    </p>
-                </div>
-
-                <!-- ADMIN PANEL -->
-                <div id="panelAdmin" class="login-panel">
-                    <p class="panel-desc">
-                        Supervisor access to monitor all users, all threats, and system health across Genjutsu.
-                    </p>
-                    <div class="admin-form">
-                        <div class="form-field">
-                            <label><i class="fas fa-envelope"></i> Admin Email</label>
-                            <input type="email" id="adminLoginEmail" placeholder="admin@example.com"
-                                onkeydown="if(event.key==='Enter') document.getElementById('adminLoginPass').focus()">
-                        </div>
-                        <div class="form-field">
-                            <label><i class="fas fa-lock"></i> Password</label>
-                            <div class="pass-wrap">
-                                <input type="password" id="adminLoginPass" placeholder="Enter admin password"
-                                    onkeydown="if(event.key==='Enter') doAdminLogin()">
-                                <button class="pass-toggle" onclick="toggleAdminPass()" tabindex="-1" type="button">
-                                    <i class="fas fa-eye" id="passIcon"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="admin-login-error" id="adminLoginError">
-                            <i class="fas fa-exclamation-circle"></i>
-                            Invalid credentials. Please check your admin email and password.
-                        </div>
-                        <button class="btn-admin-login" id="btnAdminLogin" onclick="doAdminLogin()">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Sign in as Admin
-                        </button>
-                    </div>
-                    <p class="login-note">
-                        <i class="fas fa-info-circle"></i>
-                        Admin credentials are configured in the server <code>.env</code> file.
                     </p>
                 </div>
 
@@ -186,6 +147,8 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
+            <!-- Sidebar overlay for mobile -->
+            <div class="sidebar-overlay" id="sidebarOverlay" onclick="document.querySelector('.sidebar').classList.remove('active');this.classList.remove('active')"></div>
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
@@ -201,7 +164,8 @@
                     </div>
                     <button class="notification-btn" id="notificationBtn">
                         <i class="fas fa-bell"></i>
-                        <span class="badge" id="notifBadge">0</span>
+                        <span class="badge" id="notifBadge" style="display:none">0</span>
+                        <span class="badge badge-remark" id="notifRemarkBadge" style="display:none">0</span>
                     </button>
                     <div class="scan-status" id="scanStatus">
                         <span class="scan-dot"></span>
@@ -224,7 +188,7 @@
                     <div class="stat-card">
                         <div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div>
                         <div class="stat-info">
-                            <h3>Threats Blocked</h3>
+                            <h3>Threats Detected</h3>
                             <p class="stat-number" id="statThreats" data-stat="threatsBlocked">—</p>
                             <span class="stat-change positive" id="statThreatsChange">Loading...</span>
                         </div>
@@ -253,8 +217,6 @@
                             <h3>Threat Detection Over Time</h3>
                             <select class="time-filter" id="timeFilter">
                                 <option>Last 7 Days</option>
-                                <option>Last 30 Days</option>
-                                <option>Last 3 Months</option>
                             </select>
                         </div>
                         <div class="chart-container"><canvas id="threatChart"></canvas></div>
@@ -291,6 +253,7 @@
                             <button class="filter-btn" data-filter="safe">Safe</button>
                             <button class="filter-btn" data-filter="suspicious">Suspicious</button>
                             <button class="filter-btn" data-filter="dangerous">Dangerous</button>
+                            <button class="filter-btn" data-filter="blocked">Blocked</button>
                         </div>
                         <div class="email-count-info" id="emailCountInfo">— emails loaded</div>
                     </div>
@@ -441,18 +404,8 @@
                         </div>
                         <div class="setting-item">
                             <div class="setting-info">
-                                <h4>Email Notifications</h4>
-                                <p>Receive daily summary via email</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="emailNotifications">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="setting-info">
                                 <h4>Sound Alerts</h4>
-                                <p>Play sound when threat is detected</p>
+                                <p>Play sound when new email arrives</p>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" data-setting="soundAlerts" checked>
@@ -462,16 +415,6 @@
                     </div>
                     <div class="settings-section">
                         <h3>Security Settings</h3>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Automatic Threat Blocking</h4>
-                                <p>Automatically quarantine high-risk emails</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="autoBlock" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
                         <div class="setting-item">
                             <div class="setting-info">
                                 <h4>Multi-layer Analysis</h4>
@@ -552,7 +495,7 @@
     </div>
 
     <!-- AI CHAT BOT -->
-    <div class="ai-chat-bubble" id="aiChatBubble" onclick="toggleAIChat()" title="Genjutsu AI Assistant">
+    <div class="ai-chat-bubble" id="aiChatBubble" onclick="toggleAIChat()" title="Genjutsu AI Assistant" style="display:none;">
         <i class="fas fa-robot" id="aiBubbleIcon"></i>
         <span class="ai-bubble-label">AI</span>
     </div>

@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f0;min-height:100vh;font-size:15px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f0;min-height:100vh}
 
 /* LOGIN */
 #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;
@@ -19,19 +19,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f
 .lc-icon{width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#7c3aed);border-radius:16px;
   display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px;color:#fff;
   box-shadow:0 8px 32px rgba(99,102,241,.35)}
-.lc h1{font-size:24px;font-weight:700;color:#f8fafc;margin-bottom:4px}
-.lc>p{font-size:14px;color:#94a3b8;margin-bottom:28px}
+.lc h1{font-size:22px;font-weight:700;color:#f8fafc;margin-bottom:4px}
+.lc>p{font-size:13px;color:#64748b;margin-bottom:28px}
 .fg{margin-bottom:16px;text-align:left}
-.fg label{display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;
+.fg label{display:block;font-size:11px;color:#94a3b8;margin-bottom:6px;
   text-transform:uppercase;letter-spacing:.6px;font-weight:600}
 .fg input{width:100%;padding:11px 14px;background:#0f172a;border:1px solid #334155;
-  border-radius:9px;color:#f8fafc;font-size:15px;outline:none;transition:border .2s,box-shadow .2s}
+  border-radius:9px;color:#f8fafc;font-size:14px;outline:none;transition:border .2s,box-shadow .2s}
 .fg input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
 .btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;
-  border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s;
+  border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;
   display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-login:hover{opacity:.9}
-.lerr{color:#ef4444;font-size:14px;margin-top:12px;display:none;
+.lerr{color:#ef4444;font-size:13px;margin-top:12px;display:none;
   background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px}
 
 /* LAYOUT */
@@ -41,22 +41,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f
 /* SIDEBAR */
 .sidebar{width:260px;background:#111827;border-right:1px solid #1f2937;
   display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
-.sb-brand{padding:20px 18px 18px;border-bottom:1px solid #2d3748;display:flex;align-items:center;gap:12px}
+.sb-brand{padding:20px 18px 18px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:12px}
 .sb-icon{width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#7c3aed);border-radius:10px;
   display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;flex-shrink:0}
-.sb-brand h2{font-size:17px;font-weight:700;color:#f8fafc}
+.sb-brand h2{font-size:16px;font-weight:700;color:#f8fafc}
 .sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.nl{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.8px;
+.nl{font-size:10px;color:#334155;text-transform:uppercase;letter-spacing:.8px;
   font-weight:700;padding:12px 12px 4px}
-.ni{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:9px;cursor:pointer;
-  font-size:14px;font-weight:500;color:#94a3b8;transition:all .15s;border:none;background:none;
+.ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;
+  font-size:13px;font-weight:500;color:#475569;transition:all .15s;border:none;background:none;
   width:100%;text-align:left}
-.ni i{width:17px;text-align:center;font-size:14px;flex-shrink:0}
-.ni:hover{background:#1f2937;color:#e2e8f0}
-.ni.active{background:rgba(99,102,241,.12);color:#a5b4fc;border:1px solid rgba(99,102,241,.2)}
-.ni.locked{opacity:.4;cursor:not-allowed}
-.ni.locked:hover{background:none;color:#94a3b8}
-.li{margin-left:auto;font-size:11px;color:#64748b}
+.ni i{width:17px;text-align:center;font-size:13px;flex-shrink:0}
+.ni:hover{background:#1f2937;color:#cbd5e1}
+.ni.active{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.15)}
+.ni.locked{opacity:.3;cursor:not-allowed}
+.ni.locked:hover{background:none;color:#475569}
+.li{margin-left:auto;font-size:10px;color:#1f2937}
 .sd{height:1px;background:#1f2937;margin:6px 10px}
 .sb-foot{padding:12px;border-top:1px solid #1f2937}
 .ai2{display:flex;align-items:center;gap:10px;margin-bottom:10px;
@@ -66,37 +66,37 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f
 .av.superadmin{background:linear-gradient(135deg,#f59e0b,#ef4444)}
 .av.moderator{background:linear-gradient(135deg,#6366f1,#7c3aed)}
 .av.viewer{background:linear-gradient(135deg,#10b981,#06b6d4)}
-.an{font-size:14px;color:#e2e8f0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ar{font-size:12px;color:#64748b}
-.btn-so{width:100%;padding:9px;background:none;border:1px solid #475569;color:#94a3b8;border-radius:8px;
-  cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.an{font-size:13px;color:#cbd5e1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ar{font-size:11px;color:#475569}
+.btn-so{width:100%;padding:8px;background:none;border:1px solid #334155;color:#475569;border-radius:8px;
+  cursor:pointer;font-size:12px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn-so:hover{border-color:#ef4444;color:#ef4444}
 
 /* MAIN */
 .main{margin-left:260px;flex:1;display:flex;flex-direction:column}
-.topbar{background:#111827;border-bottom:1px solid #1f2937;padding:0 28px;height:64px;
+.topbar{background:#111827;border-bottom:1px solid #1f2937;padding:0 28px;height:60px;
   display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .tbl{display:flex;flex-direction:column}
-.tbt{font-size:18px;font-weight:600;color:#f8fafc}
-.tbc{font-size:13px;color:#64748b}
+.tbt{font-size:16px;font-weight:600;color:#f8fafc}
+.tbc{font-size:12px;color:#475569}
 .tbr{display:flex;align-items:center;gap:10px}
-.rp{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:5px 13px;border-radius:20px}
+.rp{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
 .rp.superadmin{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
 .rp.moderator{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.2)}
 .rp.viewer{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2)}
-.ld{width:7px;height:7px;background:#10b981;border-radius:50%;animation:pd 2s infinite}
+.ld{width:6px;height:6px;background:#10b981;border-radius:50%;animation:pd 2s infinite}
 @keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
-.rb{background:none;border:1px solid #334155;color:#94a3b8;padding:7px 15px;border-radius:8px;
-  cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:6px}
+.rb{background:none;border:1px solid #1f2937;color:#475569;padding:6px 14px;border-radius:8px;
+  cursor:pointer;font-size:12px;transition:all .2s;display:flex;align-items:center;gap:6px}
 .rb:hover{border-color:#6366f1;color:#818cf8}
-.content{padding:28px 32px;flex:1}
+.content{padding:24px 28px;flex:1}
 
 /* PAGES */
 .page{display:none}.page.active{display:block}
 
 /* PERMISSION BANNER */
-.pb{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:10px;
-  padding:13px 16px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:14px;color:#94a3b8}
+.pb{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.12);border-radius:10px;
+  padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:13px;color:#64748b}
 .pb i{color:#ef4444;flex-shrink:0}
 
 /* STATS */
@@ -111,151 +111,151 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0f1e;color:#e2e8f
 .sc.cp::before{background:linear-gradient(90deg,#7c3aed,#6366f1)}
 .sc.co::before{background:linear-gradient(90deg,#f59e0b,#ef4444)}
 .sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.si{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.si{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
 .si.b{background:rgba(59,130,246,.1);color:#3b82f6}
 .si.r{background:rgba(239,68,68,.1);color:#ef4444}
 .si.g{background:rgba(16,185,129,.1);color:#10b981}
 .si.p{background:rgba(124,58,237,.1);color:#7c3aed}
 .si.o{background:rgba(245,158,11,.1);color:#f59e0b}
-.sn{font-size:30px;font-weight:700;color:#f8fafc;margin-bottom:4px}
-.sl{font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.sn{font-size:28px;font-weight:700;color:#f8fafc;margin-bottom:4px}
+.sl{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
 
 /* CHARTS */
 .cr{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:22px}
 .cc{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px}
 .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.ch h3{font-size:15px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
+.ch h3{font-size:14px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
 .cb2{position:relative;height:200px}
 
 /* FEED */
 .feed{background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;margin-bottom:22px}
-.fh{padding:16px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
-.fh h3{font-size:15px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
-.fi{display:flex;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid #0f172a;transition:background .12s}
+.fh{padding:14px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
+.fh h3{font-size:14px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
+.fi{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #0f172a;transition:background .12s}
 .fi:hover{background:#182032}.fi:last-child{border-bottom:none}
 .fd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .fd.d{background:#ef4444;box-shadow:0 0 5px rgba(239,68,68,.4)}
 .fd.s{background:#f59e0b}
-.fs2{flex:1;font-size:14px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ff{font-size:13px;color:#64748b;flex-shrink:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fsc{font-size:14px;font-weight:700;flex-shrink:0;min-width:44px;text-align:right}
+.fs2{flex:1;font-size:13px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ff{font-size:12px;color:#475569;flex-shrink:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsc{font-size:13px;font-weight:700;flex-shrink:0;min-width:44px;text-align:right}
 .fsc.d{color:#ef4444}.fsc.s{color:#f59e0b}
-.ft{font-size:12px;color:#64748b;flex-shrink:0}
-.frev{font-size:11px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2);
+.ft{font-size:11px;color:#334155;flex-shrink:0}
+.frev{font-size:10px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2);
   padding:2px 8px;border-radius:10px;flex-shrink:0}
 
 /* TABLES */
 .tw{background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;margin-bottom:20px}
-.th3{padding:16px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;
+.th3{padding:14px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;
   justify-content:space-between;gap:12px;flex-wrap:wrap}
-.th3 h3{font-size:15px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
+.th3 h3{font-size:14px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
 .th3-r{display:flex;align-items:center;gap:8px}
-.si2{padding:8px 13px;background:#0f172a;border:1px solid #334155;border-radius:8px;
-  color:#e2e8f0;font-size:14px;outline:none;width:200px;transition:border .2s}
+.si2{padding:7px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;
+  color:#e2e8f0;font-size:13px;outline:none;width:200px;transition:border .2s}
 .si2:focus{border-color:#6366f1}
-.tc{font-size:13px;color:#64748b}
+.tc{font-size:12px;color:#475569}
 table{width:100%;border-collapse:collapse}
-thead th{padding:11px 16px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;
-  color:#64748b;border-bottom:1px solid #1f2937;background:#0f1929;font-weight:700}
+thead th{padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;
+  color:#475569;border-bottom:1px solid #1f2937;background:#0f1929;font-weight:600}
 tbody tr{border-bottom:1px solid #1a2235;transition:background .12s}
 tbody tr:hover{background:#182032}
 tbody tr:last-child{border-bottom:none}
-td{padding:13px 16px;font-size:14px;color:#e2e8f0}
+td{padding:12px 16px;font-size:13px;color:#cbd5e1}
 .te{color:#93c5fd;font-weight:500}.td2{color:#ef4444;font-weight:700}
-.tw2{color:#f59e0b;font-weight:700}.tm{color:#64748b;font-size:13px}
+.tw2{color:#f59e0b;font-weight:700}.tm{color:#475569;font-size:12px}
 
 /* BADGES */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;
-  border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
-.badge.danger{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
-.badge.warn{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
-.badge.safe{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25)}
-.badge.info{background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,.25)}
-.badge.sa{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
-.badge.mod{background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
-.badge.vw{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25)}
-.badge.off{background:rgba(100,116,139,.12);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
-.badge.rev{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25)}
-.badge.susp{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
-.badge.ov{background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.danger{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.18)}
+.badge.warn{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.18)}
+.badge.safe{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.18)}
+.badge.info{background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.18)}
+.badge.sa{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.18)}
+.badge.mod{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.18)}
+.badge.vw{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.18)}
+.badge.off{background:rgba(100,116,139,.1);color:#475569;border:1px solid rgba(100,116,139,.18)}
+.badge.rev{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.18)}
+.badge.susp{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.18)}
+.badge.ov{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.18)}
 
 /* ACTION BUTTONS */
-.ab{padding:6px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
-.ab.edit{background:rgba(99,102,241,.12);color:#818cf8}.ab.edit:hover{background:rgba(99,102,241,.22)}
-.ab.tog{background:rgba(245,158,11,.12);color:#f59e0b}.ab.tog:hover{background:rgba(245,158,11,.22)}
-.ab.del{background:rgba(239,68,68,.12);color:#ef4444}.ab.del:hover{background:rgba(239,68,68,.22)}
-.ab.rev{background:rgba(16,185,129,.12);color:#10b981}.ab.rev:hover{background:rgba(16,185,129,.22)}
-.ab.ov{background:rgba(99,102,241,.12);color:#818cf8}.ab.ov:hover{background:rgba(99,102,241,.22)}
-.ab.susp{background:rgba(239,68,68,.12);color:#ef4444}.ab.susp:hover{background:rgba(239,68,68,.22)}
-.ab.uns{background:rgba(16,185,129,.12);color:#10b981}.ab.uns:hover{background:rgba(16,185,129,.22)}
+.ab{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.ab.edit{background:rgba(99,102,241,.1);color:#818cf8}.ab.edit:hover{background:rgba(99,102,241,.2)}
+.ab.tog{background:rgba(245,158,11,.1);color:#f59e0b}.ab.tog:hover{background:rgba(245,158,11,.2)}
+.ab.del{background:rgba(239,68,68,.1);color:#ef4444}.ab.del:hover{background:rgba(239,68,68,.2)}
+.ab.rev{background:rgba(16,185,129,.1);color:#10b981}.ab.rev:hover{background:rgba(16,185,129,.2)}
+.ab.ov{background:rgba(99,102,241,.1);color:#818cf8}.ab.ov:hover{background:rgba(99,102,241,.2)}
+.ab.susp{background:rgba(239,68,68,.1);color:#ef4444}.ab.susp:hover{background:rgba(239,68,68,.2)}
+.ab.uns{background:rgba(16,185,129,.1);color:#10b981}.ab.uns:hover{background:rgba(16,185,129,.2)}
 .ab-row{display:flex;gap:6px;flex-wrap:wrap}
 
 /* SETTINGS */
 .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px}
 .setting-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px}
-.setting-card h3{font-size:15px;font-weight:600;color:#f8fafc;margin-bottom:16px;
+.setting-card h3{font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:16px;
   display:flex;align-items:center;gap:8px}
 .setting-item{display:flex;align-items:center;justify-content:space-between;
-  padding:12px 0;border-bottom:1px solid #1f2937;font-size:14px}
+  padding:10px 0;border-bottom:1px solid #1f2937;font-size:13px}
 .setting-item:last-child{border-bottom:none}
-.si3-label{color:#e2e8f0}
-.si3-desc{font-size:12px;color:#64748b;margin-top:3px}
-.toggle-switch{position:relative;width:42px;height:24px;cursor:pointer}
+.si3-label{color:#94a3b8}
+.si3-desc{font-size:11px;color:#475569;margin-top:3px}
+.toggle-switch{position:relative;width:40px;height:22px;cursor:pointer}
 .toggle-switch input{opacity:0;width:0;height:0;position:absolute}
 .toggle-track{position:absolute;inset:0;background:#334155;border-radius:20px;transition:background .2s}
 .toggle-switch input:checked + .toggle-track{background:#6366f1}
-.toggle-thumb{position:absolute;top:4px;left:4px;width:16px;height:16px;background:#fff;
+.toggle-thumb{position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;
   border-radius:50%;transition:transform .2s}
 .toggle-switch input:checked ~ .toggle-thumb{transform:translateX(18px)}
-.num-input{width:80px;padding:7px 10px;background:#0f172a;border:1px solid #334155;
-  border-radius:8px;color:#f8fafc;font-size:14px;outline:none;text-align:center;transition:border .2s}
+.num-input{width:80px;padding:6px 10px;background:#0f172a;border:1px solid #334155;
+  border-radius:8px;color:#f8fafc;font-size:13px;outline:none;text-align:center;transition:border .2s}
 .num-input:focus{border-color:#6366f1}
-.btn-save-setting{padding:6px 15px;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);
-  border-radius:7px;font-size:13px;cursor:pointer;transition:background .2s}
+.btn-save-setting{padding:5px 14px;background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.25);
+  border-radius:7px;font-size:12px;cursor:pointer;transition:background .2s}
 .btn-save-setting:hover{background:rgba(99,102,241,.25)}
-.ml-locked{display:flex;align-items:center;gap:6px;font-size:13px;color:#64748b}
+.ml-locked{display:flex;align-items:center;gap:6px;font-size:12px;color:#475569}
 
 /* ADMIN FORM */
 .caf{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;margin-bottom:18px}
-.caf h3{font-size:15px;font-weight:600;color:#f8fafc;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.caf h3{font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .fr{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
-.ff2{} .ff2 label{display:block;font-size:12px;color:#94a3b8;margin-bottom:5px;
+.ff2{} .ff2 label{display:block;font-size:11px;color:#64748b;margin-bottom:5px;
   text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.ff2 input,.ff2 select{width:100%;padding:10px 13px;background:#0f172a;border:1px solid #334155;
-  border-radius:9px;color:#f8fafc;font-size:14px;outline:none;transition:border .2s;font-family:inherit}
+.ff2 input,.ff2 select{width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;
+  border-radius:9px;color:#f8fafc;font-size:13px;outline:none;transition:border .2s;font-family:inherit}
 .ff2 input:focus,.ff2 select:focus{border-color:#6366f1}
 .ff2 select option{background:#1e293b}
-.btn-c{padding:10px 18px;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;border:none;
-  border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;
+.btn-c{padding:9px 16px;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;border:none;
+  border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;
   white-space:nowrap;display:flex;align-items:center;gap:6px}
 .btn-c:hover{opacity:.9}
-.fe{font-size:13px;color:#ef4444;margin-top:6px;display:none}
-.fo{font-size:13px;color:#10b981;margin-top:6px;display:none}
+.fe{font-size:12px;color:#ef4444;margin-top:6px;display:none}
+.fo{font-size:12px;color:#10b981;margin-top:6px;display:none}
 
 /* ROLE DESC CARDS */
 .role-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
-.rc{background:#1e293b;border-radius:12px;padding:18px}
-.rc.rv{border:1px solid rgba(16,185,129,.25)}
-.rc.rm{border:1px solid rgba(99,102,241,.25)}
-.rc.rs{border:1px solid rgba(245,158,11,.25)}
-.rc-list{font-size:13px;color:#94a3b8;line-height:1.9;margin-top:8px}
+.rc{background:#1e293b;border-radius:12px;padding:16px}
+.rc.rv{border:1px solid rgba(16,185,129,.2)}
+.rc.rm{border:1px solid rgba(99,102,241,.2)}
+.rc.rs{border:1px solid rgba(245,158,11,.2)}
+.rc-list{font-size:12px;color:#475569;line-height:1.8;margin-top:8px}
 
 /* ACTIVITY LOG */
-.log-item{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;
-  border-bottom:1px solid #0f172a;font-size:14px}
+.log-item{display:flex;align-items:flex-start;gap:12px;padding:12px 20px;
+  border-bottom:1px solid #0f172a;font-size:13px}
 .log-item:last-child{border-bottom:none}
-.log-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;
-  justify-content:center;font-size:14px;flex-shrink:0}
+.log-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;flex-shrink:0}
 .log-icon.login{background:rgba(16,185,129,.1);color:#10b981}
 .log-icon.action{background:rgba(99,102,241,.1);color:#818cf8}
 .log-icon.admin{background:rgba(245,158,11,.1);color:#f59e0b}
 .log-icon.danger{background:rgba(239,68,68,.1);color:#ef4444}
 .log-content{flex:1;min-width:0}
-.log-action{color:#f8fafc;font-weight:600;font-size:14px}
-.log-detail{color:#94a3b8;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.log-meta{display:flex;align-items:center;gap:10px;margin-top:4px}
-.log-who{color:#64748b;font-size:13px}
-.log-when{color:#64748b;font-size:13px}
+.log-action{color:#f8fafc;font-weight:500}
+.log-detail{color:#475569;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-meta{display:flex;align-items:center;gap:10px;margin-top:3px}
+.log-who{color:#475569;font-size:12px}
+.log-when{color:#334155;font-size:12px}
 
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;
@@ -263,75 +263,75 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
 .mo.open{display:flex}
 .md2{background:#1e293b;border:1px solid #334155;border-radius:16px;
   width:100%;max-width:580px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
-.mh2{padding:20px 24px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
-.mh2 h3{font-size:16px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
-.mc{background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;padding:4px;transition:color .2s}
+.mh2{padding:18px 22px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+.mh2 h3{font-size:15px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px}
+.mc{background:none;border:none;color:#475569;font-size:18px;cursor:pointer;padding:4px;transition:color .2s}
 .mc:hover{color:#f8fafc}
-.mb2{padding:22px 24px;overflow-y:auto;flex:1}
+.mb2{padding:20px 22px;overflow-y:auto;flex:1}
 .ms2{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.msv{background:#0f172a;border:1px solid #334155;border-radius:9px;padding:14px;text-align:center}
-.msv .mv{font-size:22px;font-weight:700;color:#f8fafc}
-.msv .mk{font-size:12px;color:#64748b;margin-top:2px}
+.msv{background:#0f172a;border:1px solid #334155;border-radius:9px;padding:12px;text-align:center}
+.msv .mv{font-size:20px;font-weight:700;color:#f8fafc}
+.msv .mk{font-size:11px;color:#475569;margin-top:2px}
 
 /* HONEYPOT SESSIONS */
 .hp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .hp-stat{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;text-align:center}
-.hp-stat-val{font-size:28px;font-weight:700;color:#f8fafc}
-.hp-stat-lbl{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.hp-stat-val{font-size:26px;font-weight:700;color:#f8fafc}
+.hp-stat-lbl{font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 .hp-filters{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.hp-filter-btn{padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #334155;background:none;color:#94a3b8;transition:all .15s}
+.hp-filter-btn{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #334155;background:none;color:#475569;transition:all .15s}
 .hp-filter-btn.active{background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.3)}
-.hp-filter-btn:hover:not(.active){border-color:#64748b;color:#e2e8f0}
+.hp-filter-btn:hover:not(.active){border-color:#475569;color:#cbd5e1}
 .hp-session-card{background:#1e293b;border:1px solid #334155;border-radius:14px;margin-bottom:12px;overflow:hidden;transition:border-color .2s}
-.hp-session-card.active-session{border-color:rgba(245,158,11,.4)}
-.hp-session-card.terminated{opacity:.75}
+.hp-session-card.active-session{border-color:rgba(245,158,11,.35)}
+.hp-session-card.terminated{opacity:.7}
 .hp-session-head{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;transition:background .12s}
 .hp-session-head:hover{background:#182032}
-.hp-persona-av{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;flex-shrink:0;font-weight:700}
+.hp-persona-av{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;flex-shrink:0;font-weight:700}
 .hp-session-info{flex:1;min-width:0}
-.hp-session-name{font-size:14px;font-weight:600;color:#f8fafc}
-.hp-session-sub{font-size:12px;color:#64748b;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hp-session-name{font-size:13px;font-weight:600;color:#f8fafc}
+.hp-session-sub{font-size:11px;color:#475569;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hp-session-meta{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.hp-badge-active{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3)}
-.hp-badge-active .blink{width:7px;height:7px;background:#10b981;border-radius:50%;animation:pd 1.2s infinite}
-.hp-badge-term{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(100,116,139,.12);color:#94a3b8;border:1px solid rgba(100,116,139,.25)}
-.hp-badge-warn{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
-.hp-msg-count{font-size:12px;color:#64748b}
-.hp-toggle-btn{width:34px;height:34px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:13px;cursor:pointer;transition:all .15s;flex-shrink:0}
+.hp-badge-active{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25)}
+.hp-badge-active .blink{width:6px;height:6px;background:#10b981;border-radius:50%;animation:pd 1.2s infinite}
+.hp-badge-term{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(100,116,139,.1);color:#475569;border:1px solid rgba(100,116,139,.2)}
+.hp-badge-warn{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
+.hp-msg-count{font-size:11px;color:#475569}
+.hp-toggle-btn{width:32px;height:32px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:12px;cursor:pointer;transition:all .15s;flex-shrink:0}
 .hp-toggle-btn:hover{background:rgba(245,158,11,.18)}
 .hp-toggle-btn.open{background:rgba(245,158,11,.18);transform:rotate(180deg)}
-.hp-convo{display:none;border-top:1px solid #1f2937;padding:18px 20px;background:#0a0f1e}
+.hp-convo{display:none;border-top:1px solid #1f2937;padding:16px 20px;background:#0f172a}
 .hp-convo.open{display:block}
 .hp-convo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.hp-convo-title{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:flex;align-items:center;gap:6px}
+.hp-convo-title{font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:.6px;font-weight:700;display:flex;align-items:center;gap:6px}
 .hp-convo-actions{display:flex;gap:6px}
-.hp-msg{display:flex;gap:10px;margin-bottom:14px}
+.hp-msg{display:flex;gap:10px;margin-bottom:12px}
 .hp-msg.attacker{flex-direction:row}
 .hp-msg.persona{flex-direction:row-reverse}
-.hp-msg-av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.hp-msg-av{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
 .hp-msg.attacker .hp-msg-av{background:linear-gradient(135deg,#ef4444,#dc2626)}
 .hp-msg.persona .hp-msg-av{background:linear-gradient(135deg,#f59e0b,#d97706)}
-.hp-msg-bubble{max-width:78%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6}
-.hp-msg.attacker .hp-msg-bubble{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px 10px 10px 2px}
-.hp-msg.persona .hp-msg-bubble{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.25);border-radius:10px 10px 2px 10px;text-align:right}
-.hp-msg-time{font-size:11px;color:#64748b;margin-top:4px}
+.hp-msg-bubble{max-width:78%;padding:9px 13px;border-radius:10px;font-size:12px;line-height:1.5}
+.hp-msg.attacker .hp-msg-bubble{background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:10px 10px 10px 2px}
+.hp-msg.persona .hp-msg-bubble{background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2);border-radius:10px 10px 2px 10px;text-align:right}
+.hp-msg-time{font-size:10px;color:#334155;margin-top:4px}
 .hp-msg.persona .hp-msg-time{text-align:right}
-.hp-attacker-info{background:#1a2235;border:1px solid #334155;border-radius:10px;padding:13px 16px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px}
-.hp-ai{color:#64748b}
-.hp-av2{color:#cbd5e1;font-weight:500;margin-top:3px;font-size:13px}
-.hp-terminate-btn{padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);transition:all .15s}
-.hp-terminate-btn:hover{background:rgba(239,68,68,.22)}
+.hp-attacker-info{background:#1a2235;border:1px solid #334155;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px}
+.hp-ai{color:#475569}
+.hp-av2{color:#94a3b8;font-weight:500;margin-top:2px}
+.hp-terminate-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);transition:all .15s}
+.hp-terminate-btn:hover{background:rgba(239,68,68,.2)}
 .hp-typing{display:flex;align-items:center;gap:4px;padding:6px 10px}
-.hp-typing span{width:7px;height:7px;background:#475569;border-radius:50%;animation:typing-bounce .9s infinite}
+.hp-typing span{width:6px;height:6px;background:#475569;border-radius:50%;animation:typing-bounce .9s infinite}
 .hp-typing span:nth-child(2){animation-delay:.15s}
 .hp-typing span:nth-child(3){animation-delay:.3s}
 @keyframes typing-bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
 
 /* LOADING / EMPTY */
-.loading{padding:40px;text-align:center;color:#64748b;font-size:14px}
-.loading i{font-size:26px;margin-bottom:10px;display:block}
-.empty{padding:40px;text-align:center;color:#64748b;font-size:15px}
-.empty i{font-size:32px;margin-bottom:10px;display:block}
+.loading{padding:40px;text-align:center;color:#475569}
+.loading i{font-size:24px;margin-bottom:10px;display:block}
+.empty{padding:40px;text-align:center;color:#334155;font-size:14px}
+.empty i{font-size:30px;margin-bottom:10px;display:block}
 </style>
 </head>
 <body>
@@ -374,6 +374,7 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
       <button class="ni active" id="n-overview" onclick="nav('overview')"><i class="fas fa-chart-pie"></i>Overview</button>
       <button class="ni" id="n-users" onclick="nav('users')"><i class="fas fa-users"></i>Users</button>
       <button class="ni" id="n-threats" onclick="nav('threats')"><i class="fas fa-exclamation-triangle"></i>All Threats</button>
+      <button class="ni" id="n-blocked" onclick="nav('blocked')"><i class="fas fa-ban"></i>Threat Archive<span id="blockedBadge" style="margin-left:auto;background:rgba(239,68,68,.15);color:#ef4444;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;display:none"></span></button>
       <button class="ni" id="n-honeypot" onclick="nav('honeypot')"><i class="fas fa-bug"></i>Honeypot</button>
 
       <div class="sd"></div>
@@ -464,6 +465,34 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
         </div>
       </div>
 
+      <!-- BLOCKED EMAILS -->
+      <div class="page" id="page-blocked">
+        <!-- Summary stat cards -->
+        <div class="sg" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px" id="blockedStats">
+          <div class="sc cb"><div class="sc-top"><div class="si b"><i class="fas fa-shield-alt"></i></div></div><div class="sn" id="bsTotal">—</div><div class="sl">Total Threats</div></div>
+          <div class="sc cr"><div class="sc-top"><div class="si r"><i class="fas fa-skull-crossbones"></i></div></div><div class="sn" id="bsDangerous">—</div><div class="sl">Dangerous</div></div>
+          <div class="sc co"><div class="sc-top"><div class="si o"><i class="fas fa-exclamation-triangle"></i></div></div><div class="sn" id="bsSuspicious">—</div><div class="sl">Suspicious</div></div>
+          <div class="sc cp"><div class="sc-top"><div class="si p"><i class="fas fa-edit"></i></div></div><div class="sn" id="bsOverridden">—</div><div class="sl">Overridden</div></div>
+        </div>
+        <!-- Table -->
+        <div class="tw">
+          <div class="th3">
+            <h3><i class="fas fa-ban" style="color:#ef4444"></i>Threat Archive</h3>
+            <div class="th3-r">
+              <!-- Level filter -->
+              <select id="bLevelFilter" class="si2" style="width:130px" onchange="applyBlockedFilters()">
+                <option value="all">All Levels</option>
+                <option value="dangerous">Dangerous</option>
+                <option value="suspicious">Suspicious</option>
+              </select>
+              <input class="si2" id="bSearch" placeholder="Search subject / sender / user..." oninput="applyBlockedFilters()">
+              <span class="tc" id="bCt">—</span>
+            </div>
+          </div>
+          <div id="bTable"><div class="loading"><i class="fas fa-spinner fa-spin"></i></div></div>
+        </div>
+      </div>
+
       <!-- HONEYPOT -->
       <div class="page" id="page-honeypot">
         <div class="hp-stats">
@@ -477,7 +506,7 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
           <button class="hp-filter-btn" onclick="hpFilter('active',this)"><i class="fas fa-circle" style="color:#10b981;font-size:8px"></i> Active</button>
           <button class="hp-filter-btn" onclick="hpFilter('suspicious',this)">Suspicious</button>
           <button class="hp-filter-btn" onclick="hpFilter('terminated',this)">Terminated</button>
-          <span style="margin-left:auto;font-size:12px;color:#64748b" id="hpLastRefresh"></span>
+          <span style="margin-left:auto;font-size:11px;color:#334155" id="hpLastRefresh"></span>
         </div>
         <div id="hpSessions"><div class="loading"><i class="fas fa-spinner fa-spin"></i></div></div>
       </div>
@@ -525,7 +554,7 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
             <div class="fe" id="fE"></div><div class="fo" id="fO"></div>
           </div>
           <div class="role-cards">
-            <div class="rc rv"><span class="badge vw">Viewer</span><div class="rc-list">✓ Dashboard &amp; Overview<br>✓ View Users &amp; Threats<br>✓ Honeypot Sessions<br>✓ Export Reports<br>✓ System Settings</div></div>
+            <div class="rc rv"><span class="badge vw">Viewer</span><div class="rc-list">✓ Dashboard &amp; Overview<br>✓ View Users &amp; Threats<br>✓ Honeypot Sessions<br>✓ Threat Archive<br>✓ System Settings</div></div>
             <div class="rc rm"><span class="badge mod">Moderator</span><div class="rc-list">✓ Everything Viewer has<br>✓ Mark threats as reviewed<br>✓ Add notes to threats<br>✓ Dismiss alerts<br>✓ View Activity Log</div></div>
             <div class="rc rs"><span class="badge sa">Super Admin</span><div class="rc-list">✓ Everything Moderator has<br>✓ Manage all admins<br>✓ Suspend/unsuspend users<br>✓ Override threat levels<br>✓ ML threshold control<br>✓ Admin Activity Log</div></div>
           </div>
@@ -549,7 +578,7 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
               <div style="width:18px;height:18px;border-radius:5px;background:rgba(99,102,241,.1);color:#818cf8;
                 font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${n}</div>
               <div style="flex:1;color:#94a3b8">${nm}</div>
-              <div style="color:#64748b;font-size:10px">${p}</div>
+              <div style="color:#1f2937;font-size:9px">${p}</div>
             </div>`).join('')}
           </div>
         </div>
@@ -594,26 +623,105 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
   </div>
 </div>
 
-<!-- Override modal -->
-<div class="mo" id="overrideModal">
-  <div class="md2" style="max-width:520px">
-    <div class="mh2"><h3><i class="fas fa-edit" style="color:#818cf8"></i>Override Threat Level</h3><button class="mc" onclick="closeM('overrideModal')"><i class="fas fa-times"></i></button></div>
-    <div class="mb2">
-      <p style="font-size:12px;color:#64748b;margin-bottom:10px">Subject: <strong id="ovSubject" style="color:#f8fafc"></strong></p>
-      <div class="fg">
-        <label>New Threat Level</label>
-        <select id="ovLevel" style="width:100%;padding:8px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f8fafc;font-size:12px;outline:none;font-family:inherit">
-          <option value="safe">Safe — not a threat</option>
-          <option value="suspicious">Suspicious — medium risk</option>
-          <option value="dangerous">Dangerous — high risk</option>
-        </select>
+<!-- Override modal — beautiful new design, sends adminRemark to trigger user notification -->
+<style>
+.om-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px}
+.om-overlay.open{display:flex}
+.om-dialog{background:#1a2236;border:1px solid rgba(99,102,241,.25);border-radius:16px;width:100%;max-width:520px;box-shadow:0 0 0 1px rgba(99,102,241,.1),0 25px 50px rgba(0,0,0,.5);animation:omIn .22s cubic-bezier(.16,1,.3,1);overflow:hidden}
+@keyframes omIn{from{opacity:0;transform:translateY(-10px) scale(.97)}to{opacity:1;transform:none}}
+.om-hdr{display:flex;align-items:center;gap:14px;padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.om-hdr-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(99,102,241,.35)}
+.om-hdr-text h2{font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 2px}
+.om-hdr-text p{font-size:12px;color:#64748b;margin:0}
+.om-x{width:30px;height:30px;border-radius:7px;border:none;background:rgba(255,255,255,.06);color:#64748b;cursor:pointer;margin-left:auto;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s}
+.om-x:hover{background:rgba(239,68,68,.15);color:#ef4444}
+.om-subj-row{display:flex;align-items:baseline;gap:10px;padding:12px 22px;background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.05)}
+.om-subj-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#475569;flex-shrink:0}
+.om-subj-val{font-size:13px;font-weight:600;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.om-levels{display:flex;align-items:center;gap:12px;padding:18px 22px 0}
+.om-lbox{flex:1}
+.om-lcap{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#475569;margin-bottom:7px}
+.om-lpill{display:inline-flex;align-items:center;padding:6px 13px;border-radius:8px;font-size:13px;font-weight:700;text-transform:capitalize;background:rgba(255,255,255,.05);color:#64748b;border:1px solid rgba(255,255,255,.08)}
+.om-lpill.dangerous{background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.25)}
+.om-lpill.suspicious{background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.25)}
+.om-lpill.safe{background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.25)}
+.om-arr{color:#334155;font-size:13px;flex-shrink:0;padding-top:18px}
+.om-sel-wrap{position:relative}
+.om-sel{width:100%;appearance:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#f1f5f9;font-size:13px;font-weight:600;padding:7px 34px 7px 12px;cursor:pointer;outline:none;transition:.15s;font-family:inherit}
+.om-sel:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.2)}
+.om-sel.c-safe{border-color:rgba(16,185,129,.4);color:#10b981}
+.om-sel.c-suspicious{border-color:rgba(245,158,11,.4);color:#f59e0b}
+.om-sel.c-dangerous{border-color:rgba(239,68,68,.4);color:#ef4444}
+.om-sel-arr{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#475569;font-size:10px;pointer-events:none}
+.om-field{padding:18px 22px 0}
+.om-lbl{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#475569;margin-bottom:8px}
+.om-lbl i{color:#6366f1;font-size:12px}
+.om-opt{font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:#334155;font-style:italic}
+.om-ta{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#e2e8f0;font-size:13px;font-family:inherit;line-height:1.6;padding:12px 14px;resize:vertical;min-height:90px;max-height:180px;outline:none;transition:.15s}
+.om-ta::placeholder{color:#334155}
+.om-ta:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.18)}
+.om-chars{text-align:right;font-size:10px;color:#334155;margin-top:4px}
+.om-notice{margin:14px 22px 0;padding:10px 13px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:8px;font-size:11px;color:#64748b;display:flex;gap:8px;line-height:1.5}
+.om-notice i{color:#818cf8;flex-shrink:0;margin-top:1px}
+.om-foot{display:flex;gap:10px;justify-content:flex-end;padding:18px 22px}
+.om-btn{padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.om-cancel{background:rgba(255,255,255,.05);color:#64748b}
+.om-cancel:hover{background:rgba(255,255,255,.09);color:#94a3b8}
+.om-save{background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3);min-width:140px;justify-content:center}
+.om-save:hover{opacity:.9}
+.om-save:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+@keyframes omSpin{to{transform:rotate(360deg)}}
+.om-spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:omSpin .7s linear infinite}
+</style>
+
+<div class="om-overlay" id="overrideModal" onclick="if(event.target===this)closeOverrideNew()">
+  <div class="om-dialog">
+    <div class="om-hdr">
+      <div class="om-hdr-icon"><i class="fas fa-user-shield"></i></div>
+      <div class="om-hdr-text">
+        <h2>Override Threat Level</h2>
+        <p>Manually reclassify — remark is sent to the user</p>
       </div>
-      <div class="fg">
-        <label>Reason</label>
-        <textarea id="ovNote" rows="2" placeholder="Reason for override..." style="width:100%;padding:8px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f8fafc;font-size:12px;outline:none;resize:vertical;font-family:inherit"></textarea>
+      <button class="om-x" onclick="closeOverrideNew()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="om-subj-row">
+      <span class="om-subj-lbl">Subject</span>
+      <span class="om-subj-val" id="omSubjectNew">—</span>
+    </div>
+    <div class="om-levels">
+      <div class="om-lbox">
+        <span class="om-lcap">Current Level</span>
+        <span class="om-lpill" id="omCurrentNew">—</span>
       </div>
-      <button onclick="submitOverride()" style="width:100%;padding:10px;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
-        <i class="fas fa-save"></i> Save Override
+      <div class="om-arr"><i class="fas fa-arrow-right"></i></div>
+      <div class="om-lbox">
+        <span class="om-lcap">New Level</span>
+        <div class="om-sel-wrap">
+          <select id="omLevelNew" class="om-sel" onchange="omColorSel()">
+            <option value="safe">✅ Safe</option>
+            <option value="suspicious">⚠️ Suspicious</option>
+            <option value="dangerous">🚨 Dangerous</option>
+          </select>
+          <i class="fas fa-chevron-down om-sel-arr"></i>
+        </div>
+      </div>
+    </div>
+    <div class="om-field">
+      <label class="om-lbl">
+        <i class="fas fa-comment-dots"></i> Admin Remark
+        <span class="om-opt">(visible to user as notification)</span>
+      </label>
+      <textarea id="omRemarkNew" class="om-ta" placeholder="Explain the reclassification — the user will see this in their notification panel." maxlength="500" oninput="document.getElementById('omCharsNew').textContent=this.value.length"></textarea>
+      <div class="om-chars"><span id="omCharsNew">0</span> / 500</div>
+    </div>
+    <div class="om-notice">
+      <i class="fas fa-info-circle"></i>
+      This override is logged under your admin account. If you write a remark, the user receives it as a notification immediately.
+    </div>
+    <div class="om-foot">
+      <button class="om-btn om-cancel" onclick="closeOverrideNew()">Cancel</button>
+      <button class="om-btn om-save" id="omSaveNew" onclick="submitOverrideNew()">
+        <i class="fas fa-save"></i><span>Save Override</span>
       </button>
     </div>
   </div>
@@ -657,10 +765,20 @@ td{padding:13px 16px;font-size:14px;color:#e2e8f0}
 
 <script>
 // ── State ─────────────────────────────────────────────────────
-let me=null, allUsers=[], allThreats=[], charts={};
+let me=null, allUsers=[], allThreats=[], charts=[];
+
+// ── Central fetch wrapper — always sends session cookie ───────
+async function af(url, opts={}){
+  return fetch(url, {
+    ...opts,
+    credentials: 'include',
+    headers: { 'Content-Type':'application/json', ...(opts.headers||{}) }
+  });
+}
 let editingThreatId=null, editingUserId=null, editingUserEmail=null, editingAdminId=null;
 
 const PT={overview:['Overview','Dashboard'],users:['Users','Users'],threats:['Threats','Threats'],
+  blocked:['Threat Archive','Blocked'],
   honeypot:['Honeypot','Honeypot'],settings:['System Settings','Settings'],
   activity:['Activity Log','Activity'],adminlog:['Admin Activity Log','Admin Log'],
   admins:['Manage Admins','Admins'],model:['ML Model','ML Model']};
@@ -672,14 +790,14 @@ async function doLogin(){
   const err=document.getElementById('lerr');
   err.style.display='none';
   try{
-    const res=await fetch('/admin/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const res=await fetch('/admin/api/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     const data=await res.json();
     if(data.success){me=data.admin;bootApp();}
     else{err.innerHTML=`<i class="fas fa-exclamation-circle"></i> ${data.error}`;err.style.display='block';}
   }catch{err.innerHTML='<i class="fas fa-exclamation-circle"></i> Cannot connect.';err.style.display='block';}
 }
 
-async function doLogout(){await fetch('/admin/api/logout',{method:'POST'});location.reload();}
+async function doLogout(){await af('/admin/api/logout',{method:'POST'});location.reload();}
 
 // ── Boot ──────────────────────────────────────────────────────
 function bootApp(){
@@ -693,7 +811,17 @@ function bootApp(){
   const pill=document.getElementById('rPill');
   pill.textContent=me.roleLabel||me.role; pill.className=`rp ${me.role}`;
   applyPerms();
-  loadAll();
+
+  // ── Restore page from URL hash (survives refresh) ─────────
+  // We await loadAll() first so the page's data is ready the
+  // moment it becomes visible — no flash of empty content.
+  const hash=location.hash.replace('#','');
+  const validPages=['overview','users','threats','blocked','honeypot','settings','activity','adminlog','admins','model'];
+  const targetPage = (hash && validPages.includes(hash)) ? hash : 'overview';
+
+  loadAll().then(() => {
+    nav(targetPage);
+  });
 }
 
 function applyPerms(){
@@ -724,11 +852,15 @@ function nav(name){
   document.getElementById('tbT').textContent=t;
   document.getElementById('tbC').textContent=c;
 
+  // ── Persist current page in URL hash so refresh restores it ─
+  history.replaceState(null,'','#'+name);
+
   if(name==='settings')  loadSettings();
   if(name==='activity')  loadActivityLog();
   if(name==='adminlog')  loadAdminLog();
   if(name==='admins')    loadAdmins();
   if(name==='honeypot')  loadHoneypot();
+  if(name==='blocked')   loadBlocked();
 }
 
 // ── Load all ──────────────────────────────────────────────────
@@ -741,7 +873,7 @@ async function loadAll(){
 
 // ── Stats ─────────────────────────────────────────────────────
 async function loadStats(){
-  const res=await fetch('/admin/api/stats');
+  const res=await af('/admin/api/stats');
   const data=await res.json();
   if(!data.success)return;
   const s=data.stats;
@@ -761,16 +893,24 @@ async function loadStats(){
        ['Accuracy',`<span style="color:${acc>=85?'#10b981':'#f59e0b'}">${acc}%</span>`],
        ['Status','<span class="badge safe">Active</span>']].map(([k,v])=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1f2937;font-size:11px">
-      <span style="color:#94a3b8">${k}</span><span style="color:#f8fafc">${v}</span></div>`).join('')}
-    <div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:3px"><span>Accuracy</span><span>${acc}%</span></div>
+      <span style="color:#475569">${k}</span><span style="color:#f8fafc">${v}</span></div>`).join('')}
+    <div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:10px;color:#334155;margin-bottom:3px"><span>Accuracy</span><span>${acc}%</span></div>
     <div style="background:#0f172a;border-radius:3px;height:5px;overflow:hidden"><div style="background:${acc>=85?'#10b981':'#f59e0b'};width:${acc}%;height:100%;border-radius:3px;transition:width .8s"></div></div></div>`;
 
-  buildCharts(s);
+  // ── Fetch real per-day trend from /admin/api/trend ─────────
+  let trend = null;
+  try {
+    const tr = await af('/admin/api/trend?days=7');
+    const td = await tr.json();
+    if (td.success) trend = td.trend;
+  } catch(_) {}
+
+  buildCharts(s, trend);
 }
 
 // ── Users ─────────────────────────────────────────────────────
 async function loadUsers(){
-  const res=await fetch('/admin/api/users');
+  const res=await af('/admin/api/users');
   const data=await res.json();
   if(!data.success)return;
   allUsers=data.users;
@@ -802,7 +942,7 @@ function filterUsers(q){renderUsers(allUsers.filter(u=>(u.email||'').toLowerCase
 
 // ── Threats ───────────────────────────────────────────────────
 async function loadThreats(){
-  const res=await fetch('/admin/api/threats?limit=200');
+  const res=await af('/admin/api/threats?limit=200');
   const data=await res.json();
   if(!data.success)return;
   allThreats=data.threats;
@@ -819,19 +959,32 @@ function renderThreats(list){
     <table><thead><tr><th>#</th><th>User</th><th>Subject</th><th>Score</th><th>Level</th><th>Status</th><th>Scanned</th>${canRev||canOv?'<th>Actions</th>':''}</tr></thead><tbody>
     ${list.map((t,i)=>{
       const sc=Math.round((t.confidence_score||0)*100);
+      const level=t.threat_type || (sc>=60?'dangerous':'suspicious');
       const reviewed=t.review;
       const ovr=t.override;
+      // Admin remark badge — shown if override has a note
+      const hasRemark = ovr && ovr.note;
+      const remarkBadge = hasRemark
+        ? `<span class="badge ov" title="${esc(ovr.note||'')}" style="cursor:pointer;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:4px">
+            <i class="fas fa-comment-dots" style="font-size:9px;flex-shrink:0"></i>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((ovr.note||'').substring(0,30))}${(ovr.note||'').length>30?'…':''}</span>
+          </span>` : '';
       return `<tr>
         <td class="tm">${i+1}</td>
         <td class="te" style="font-size:10px">${esc(t.user_email||'—')}</td>
         <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">${esc(t.subject||'(No Subject)')}</td>
         <td class="${sc>=60?'td2':'tw2'}">${sc}/100</td>
-        <td><span class="badge ${sc>=60?'danger':'warn'}">${t.threat_type||'suspicious'}</span></td>
-        <td>${reviewed?`<span class="badge rev" title="${esc(reviewed.note||'')}">✓ ${reviewed.status}</span>`:ovr?`<span class="badge ov">Override: ${ovr.new_level}</span>`:'<span class="tm">Pending</span>'}</td>
+        <td><span class="badge ${level==='dangerous'?'danger':'warn'}">${level}</span></td>
+        <td>
+          ${reviewed?`<span class="badge rev" title="${esc(reviewed.note||'')}">✓ ${reviewed.status}</span>`:''}
+          ${ovr&&!reviewed?`<span class="badge ov">→ ${ovr.new_level||level}</span>`:''}
+          ${!reviewed&&!ovr?'<span class="tm">Pending</span>':''}
+          ${remarkBadge}
+        </td>
         <td class="tm">${fmt(t.scanned_at)}</td>
         ${canRev||canOv?`<td onclick="event.stopPropagation()"><div class="ab-row">
           ${canRev?`<button class="ab rev" onclick="openReviewModal('${t.email_id}','${esc(t.subject||'')}')"><i class="fas fa-check"></i></button>`:''}
-          ${canOv?`<button class="ab ov" onclick="openOverrideModal('${t.email_id}','${esc(t.subject||'')}','${t.threat_type||'suspicious'}')"><i class="fas fa-edit"></i></button>`:''}
+          ${canOv?`<button class="ab ov" onclick="openOverrideModal('${t.email_id}','${esc(t.subject||'')}','${level}')"><i class="fas fa-edit"></i></button>`:''}
         </div></td>`:''}
       </tr>`;
     }).join('')}</tbody></table>`;
@@ -859,7 +1012,7 @@ function renderFeed(list){
 
 // ── Settings ──────────────────────────────────────────────────
 async function loadSettings(){
-  const res=await fetch('/admin/api/settings');
+  const res=await af('/admin/api/settings');
   const data=await res.json();
   if(!data.success)return;
   const s=data.settings;
@@ -876,7 +1029,7 @@ async function loadSettings(){
       </div>
       <div class="setting-card">
         <h3><i class="fas fa-brain" style="color:#7c3aed"></i>ML Threat Thresholds
-          ${!isSA?'<span style="font-size:11px;color:#64748b;margin-left:4px"><i class="fas fa-lock"></i> Super Admin only</span>':''}
+          ${!isSA?'<span style="font-size:9px;color:#334155;margin-left:4px"><i class="fas fa-lock"></i> Super Admin only</span>':''}
         </h3>
         <div class="setting-item">
           <div><div class="si3-label">Dangerous Score Threshold</div><div class="si3-desc">Emails at or above this score = Dangerous</div></div>
@@ -921,7 +1074,7 @@ function buildNumField(key,label,val){
 }
 
 async function saveSetting(key,value){
-  const res=await fetch('/admin/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,value})});
+  const res=await af('/admin/api/settings',{method:'PUT',body:JSON.stringify({key,value})});
   const data=await res.json();
   if(data.success){
     const el=document.createElement('div');
@@ -939,7 +1092,7 @@ async function loadActivityLog(){
     document.getElementById('actLog').innerHTML='<div class="empty"><i class="fas fa-lock"></i>Access restricted.</div>';
     return;
   }
-  const res=await fetch('/admin/api/activity?limit=100');
+  const res=await af('/admin/api/activity?limit=100');
   const data=await res.json();
   if(!data.success)return;
   const logs=data.logs;
@@ -966,7 +1119,7 @@ async function loadAdminLog(){
     document.getElementById('aalLog').innerHTML='<div class="empty"><i class="fas fa-lock"></i>Super Admin only.</div>';
     return;
   }
-  const res=await fetch('/admin/api/admin-activity?limit=100');
+  const res=await af('/admin/api/admin-activity?limit=100');
   const data=await res.json();
   if(!data.success)return;
   const logs=data.logs;
@@ -995,7 +1148,7 @@ async function loadAdmins(){
     document.getElementById('admTable').innerHTML='<div class="empty"><i class="fas fa-lock"></i>Super Admin only.</div>';
     return;
   }
-  const res=await fetch('/admin/api/admins');
+  const res=await af('/admin/api/admins');
   const data=await res.json();
   if(!data.success)return;
   const admins=data.admins;
@@ -1029,7 +1182,7 @@ async function createAdmin(){
   fe.style.display=fo.style.display='none';
   if(!email||!pass)return showMsg('fE','Email and password required.');
   if(pass.length<6)return showMsg('fE','Password must be at least 6 characters.');
-  const res=await fetch('/admin/api/admins',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,role})});
+  const res=await af('/admin/api/admins',{method:'POST',body:JSON.stringify({email,password:pass,role})});
   const data=await res.json();
   if(data.success){showMsg('fO','Admin created successfully.');document.getElementById('nE').value='';document.getElementById('nP').value='';loadAdmins();}
   else showMsg('fE',data.error||'Could not create admin.');
@@ -1049,29 +1202,83 @@ function openReviewModal(emailId,subject){
 async function submitReview(){
   const note=document.getElementById('revNote').value;
   const status=document.getElementById('revStatus').value;
-  const res=await fetch(`/admin/api/threats/${editingThreatId}/review`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note,status})});
+  const res=await af(`/admin/api/threats/${editingThreatId}/review`,{method:'POST',body:JSON.stringify({note,status})});
   const data=await res.json();
   if(data.success){closeM('reviewModal');loadThreats();}
   else alert(data.error);
 }
 
-// ── Override modal ────────────────────────────────────────────
+// ── Override modal (new) ──────────────────────────────────────
 function openOverrideModal(emailId,subject,currentLevel){
   editingThreatId=emailId;
-  document.getElementById('ovSubject').textContent=subject||'(No Subject)';
-  document.getElementById('ovLevel').value=currentLevel||'suspicious';
-  document.getElementById('ovNote').value='';
+  document.getElementById('omSubjectNew').textContent=subject||'(No Subject)';
+  document.getElementById('omRemarkNew').value='';
+  document.getElementById('omCharsNew').textContent='0';
+  const pill=document.getElementById('omCurrentNew');
+  pill.textContent=currentLevel||'unknown';
+  pill.className='om-lpill '+(currentLevel||'');
+  const sel=document.getElementById('omLevelNew');
+  sel.value=currentLevel||'suspicious';
+  omColorSel();
+  const btn=document.getElementById('omSaveNew');
+  btn.disabled=false;
+  btn.innerHTML='<i class="fas fa-save"></i><span>Save Override</span>';
+  btn.style.background='';
   document.getElementById('overrideModal').classList.add('open');
 }
 
-async function submitOverride(){
-  const newLevel=document.getElementById('ovLevel').value;
-  const note=document.getElementById('ovNote').value;
-  const res=await fetch(`/admin/api/threats/${editingThreatId}/override`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({newLevel,note})});
-  const data=await res.json();
-  if(data.success){closeM('overrideModal');loadThreats();}
-  else alert(data.error);
+function closeOverrideNew(){
+  document.getElementById('overrideModal').classList.remove('open');
 }
+
+function omColorSel(){
+  const sel=document.getElementById('omLevelNew');
+  sel.className='om-sel c-'+sel.value;
+}
+
+async function submitOverrideNew(){
+  const newLevel=document.getElementById('omLevelNew').value;
+  const remark=document.getElementById('omRemarkNew').value.trim();
+  const btn=document.getElementById('omSaveNew');
+  btn.disabled=true;
+  btn.innerHTML='<div class="om-spin"></div><span>Saving…</span>';
+  try{
+    const res=await af(`/admin/api/threats/${editingThreatId}/override`,{
+      method:'PATCH',
+      body:JSON.stringify({overrideLevel:newLevel,adminRemark:remark})
+    });
+    const data=await res.json();
+    if(data.success){
+      btn.innerHTML='<i class="fas fa-check"></i><span>Saved!</span>';
+      btn.style.background='linear-gradient(135deg,#059669,#10b981)';
+      setTimeout(()=>{
+        closeOverrideNew();
+        loadThreats();
+        // Also refresh blocked page if it has been loaded
+        if(allBlocked.length) loadBlocked();
+        // Show toast
+        const t=document.createElement('div');
+        t.style.cssText='position:fixed;bottom:20px;right:20px;background:#1e293b;border:1px solid rgba(16,185,129,.3);color:#10b981;padding:10px 16px;border-radius:10px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.4)';
+        t.innerHTML=`<i class="fas fa-check-circle"></i> Override saved — remark sent to user`;
+        document.body.appendChild(t);
+        setTimeout(()=>t.remove(),3500);
+      },800);
+    }else{
+      btn.disabled=false;
+      btn.innerHTML='<i class="fas fa-save"></i><span>Save Override</span>';
+      btn.style.background='';
+      alert(data.error||'Override failed');
+    }
+  }catch(err){
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-save"></i><span>Save Override</span>';
+    btn.style.background='';
+    alert(err.message);
+  }
+}
+
+// Legacy alias — kept in case any old code calls submitOverride()
+async function submitOverride(){ submitOverrideNew(); }
 
 // ── Suspend modal ─────────────────────────────────────────────
 function openSuspendModal(userId,email){
@@ -1083,7 +1290,7 @@ function openSuspendModal(userId,email){
 
 async function submitSuspend(){
   const reason=document.getElementById('suspReason').value;
-  const res=await fetch(`/admin/api/users/${editingUserId}/suspend`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:editingUserEmail,reason})});
+  const res=await af(`/admin/api/users/${editingUserId}/suspend`,{method:'POST',body:JSON.stringify({email:editingUserEmail,reason})});
   const data=await res.json();
   if(data.success){closeM('suspendModal');loadUsers();}
   else alert(data.error);
@@ -1091,7 +1298,7 @@ async function submitSuspend(){
 
 async function unsuspendUser(userId,email){
   if(!confirm(`Unsuspend ${email}?`))return;
-  const res=await fetch(`/admin/api/users/${userId}/unsuspend`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const res=await af(`/admin/api/users/${userId}/unsuspend`,{method:'POST',body:JSON.stringify({email})});
   const data=await res.json();
   if(data.success)loadUsers();
   else alert(data.error);
@@ -1108,21 +1315,21 @@ function openRoleModal(adminId,email,currentRole){
 
 async function submitRole(){
   const role=document.getElementById('rmRole').value;
-  const res=await fetch(`/admin/api/admins/${editingAdminId}/role`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});
+  const res=await af(`/admin/api/admins/${editingAdminId}/role`,{method:'PUT',body:JSON.stringify({role})});
   const data=await res.json();
   if(data.success){closeM('roleModal');loadAdmins();}
   else{document.getElementById('rmErr').textContent=data.error;document.getElementById('rmErr').style.display='block';}
 }
 
 async function toggleAdmin(id){
-  const res=await fetch(`/admin/api/admins/${id}/toggle`,{method:'PUT'});
+  const res=await af(`/admin/api/admins/${id}/toggle`,{method:'PUT'});
   const data=await res.json();
   if(data.success)loadAdmins(); else alert(data.error);
 }
 
 async function deleteAdmin(id,email){
   if(!confirm(`Remove admin: ${email}?`))return;
-  const res=await fetch(`/admin/api/admins/${id}`,{method:'DELETE'});
+  const res=await af(`/admin/api/admins/${id}`,{method:'DELETE'});
   const data=await res.json();
   if(data.success)loadAdmins(); else alert(data.error);
 }
@@ -1143,8 +1350,8 @@ function openUserModal(email){
     ${[['Gmail',`<span style="color:#93c5fd">${esc(user.email)}</span>`],
        ['Name',esc(user.username||'—')],['Registered',fmt(user.created_at)],
        ['Status',user.is_suspended?'<span class="badge susp">Suspended</span>':'<span class="badge safe">Active</span>']
-      ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1f2937;font-size:13px"><span style="color:#94a3b8">${k}</span><span>${v}</span></div>`).join('')}
-    ${threats.length?`<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">Recent Threats</div>
+      ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1f2937;font-size:12px"><span style="color:#475569">${k}</span><span>${v}</span></div>`).join('')}
+    ${threats.length?`<div style="font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">Recent Threats</div>
     ${threats.slice(0,5).map(t=>{const sc=Math.round((t.confidence_score||0)*100);return`<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid #1f2937;font-size:11px">
       <div style="width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${sc>=60?'#ef4444':'#f59e0b'}"></div>
       <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8">${esc(t.subject||'(No Subject)')}</div>
@@ -1158,64 +1365,238 @@ function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 // ── Charts ────────────────────────────────────────────────────
-function buildCharts(s){
-  const cd={plugins:{legend:{labels:{color:'#334155',font:{size:10}}}},
-    scales:{x:{grid:{color:'#1f2937'},ticks:{color:'#1f2937'}},y:{grid:{color:'#1f2937'},ticks:{color:'#1f2937'},beginAtZero:true}},
-    responsive:true,maintainAspectRatio:false};
-  const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toLocaleDateString('en-GB',{weekday:'short'});});
-  const avg=s.totalThreats/7;
+function buildCharts(s, trend){
+  // Line chart options — visible grid and tick colors
+  const lineOpts={
+    plugins:{legend:{labels:{color:'#94a3b8',font:{size:11},boxWidth:14,padding:12}}},
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#64748b',font:{size:11}}},
+      y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#64748b',font:{size:11}},beginAtZero:true}
+    },
+    responsive:true,maintainAspectRatio:false
+  };
+
+  // ── Threat Trend — real per-day data from /admin/api/trend ──
+  // trend = { labels, threats, safe } from getAdminTrendData in db.js
+  // Falls back to flat estimate only if API call failed
+  const trendLabels  = trend ? trend.labels  : Array.from({length:7},(_,i)=>{ const d=new Date();d.setDate(d.getDate()-(6-i));return d.toLocaleDateString('en-GB',{weekday:'short'}); });
+  const trendThreats = trend ? trend.threats : Array(7).fill(Math.round(s.totalThreats/7));
+  const trendSafe    = trend ? trend.safe    : Array(7).fill(Math.round((s.totalEmails-s.totalThreats)/7));
 
   const tc=document.getElementById('tChart');
-  if(tc){if(charts.t)charts.t.destroy();charts.t=new Chart(tc,{type:'line',data:{labels:days,datasets:[
-    {label:'Threats',data:days.map(()=>Math.max(0,Math.round(avg*(0.4+Math.random()*1.2)))),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',tension:.4,fill:true,pointRadius:2},
-    {label:'Safe',data:days.map(()=>Math.max(0,Math.round((s.totalEmails/7)*(0.6+Math.random()*.8)))),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.05)',tension:.4,fill:true,pointRadius:2}
-  ]},options:cd});}
+  if(tc){
+    if(charts.t)charts.t.destroy();
+    charts.t=new Chart(tc,{type:'line',data:{labels:trendLabels,datasets:[
+      {label:'Threats',data:trendThreats,
+       borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.07)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#ef4444'},
+      {label:'Safe',data:trendSafe,
+       borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.07)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#10b981'}
+    ]},options:lineOpts});
+  }
 
+  // ── By Type pie — real subtype counts from scan_results ────
+  // s.subtypes comes from getSystemStats() in db.js
+  const sub = s.subtypes || { phishing:0, malware_link:0, spoofed_sender:0, other:0 };
+  const typeData=[sub.phishing, sub.malware_link, sub.spoofed_sender, sub.other];
   const tyc=document.getElementById('tyChart');
-  if(tyc){if(charts.ty)charts.ty.destroy();charts.ty=new Chart(tyc,{type:'doughnut',data:{
-    labels:['Phishing','Susp. Links','Sender Spoof','Urgency','Other'],
-    datasets:[{data:[Math.round(s.totalThreats*.45),Math.round(s.totalThreats*.25),Math.round(s.totalThreats*.15),Math.round(s.totalThreats*.1),Math.round(s.totalThreats*.05)],
-    backgroundColor:['#ef4444','#f59e0b','#7c3aed','#3b82f6','#334155'],borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#334155',font:{size:10},padding:7}}}}});}
+  if(tyc){
+    if(charts.ty)charts.ty.destroy();
+    charts.ty=new Chart(tyc,{type:'doughnut',data:{
+      labels:['Phishing','Malware Links','Spoofed Senders','Other'],
+      datasets:[{
+        data:typeData,
+        backgroundColor:['#ef4444','#f59e0b','#7c3aed','#3b82f6','#475569'],
+        borderWidth:2,borderColor:'#111827',hoverOffset:6
+      }]
+    },options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{
+        position:'bottom',
+        labels:{
+          color:'#cbd5e1',       // bright — clearly readable
+          font:{size:11},
+          padding:10,
+          boxWidth:12,
+          usePointStyle:true,
+          pointStyle:'circle'
+        }
+      }}
+    }});
+  }
 
+  // ── Score distribution bar (ML model page) ───────────────────
   const sc=document.getElementById('scChart');
-  if(sc){if(charts.sc)charts.sc.destroy();
+  if(sc){
+    if(charts.sc)charts.sc.destroy();
+    // Real dangerous/suspicious split from scan_results, not a fake estimate
     const safe=Math.max(0,s.totalEmails-s.totalThreats);
-    const susp=Math.round(s.totalThreats*.55);const dang=s.totalThreats-susp;
-    charts.sc=new Chart(sc,{type:'bar',data:{labels:['Safe (0–29)','Suspicious (30–59)','Dangerous (60–100)'],
-    datasets:[{data:[safe,susp,dang],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderRadius:5,borderWidth:0}]},
-    options:{...cd,plugins:{legend:{display:false}}}});}
+    const dang=s.dangerousCount  || 0;
+    const susp=s.suspiciousCount || 0;
+    charts.sc=new Chart(sc,{type:'bar',data:{
+      labels:['Safe (0–29)','Suspicious (30–59)','Dangerous (60–100)'],
+      datasets:[{data:[safe,susp,dang],backgroundColor:['#10b981','#f59e0b','#ef4444'],borderRadius:5,borderWidth:0}]
+    },options:{...lineOpts,plugins:{legend:{display:false}}}});
+  }
+}
+
+// ── Threat Archive ────────────────────────────────────────────
+let allBlocked = [];
+
+async function loadBlocked() {
+  document.getElementById('bTable').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i></div>';
+  try {
+    const res  = await af('/admin/api/blocked?limit=500');
+    const data = await res.json();
+    if (!data.success) return;
+
+    allBlocked = data.blocked;
+
+    // Update stat cards
+    document.getElementById('bsTotal').textContent     = data.summary.total;
+    document.getElementById('bsDangerous').textContent = data.summary.dangerous;
+    document.getElementById('bsSuspicious').textContent= data.summary.suspicious;
+    document.getElementById('bsOverridden').textContent= data.summary.overridden;
+
+    // Update sidebar badge
+    const badge = document.getElementById('blockedBadge');
+    if (data.summary.total > 0) {
+      badge.textContent     = data.summary.total;
+      badge.style.display   = 'inline-block';
+    } else {
+      badge.style.display   = 'none';
+    }
+
+    applyBlockedFilters();
+  } catch (err) {
+    document.getElementById('bTable').innerHTML =
+      `<div class="empty"><i class="fas fa-exclamation-circle"></i>Failed to load: ${esc(err.message)}</div>`;
+  }
+}
+
+function applyBlockedFilters() {
+  const q     = (document.getElementById('bSearch')?.value || '').toLowerCase();
+  const level = document.getElementById('bLevelFilter')?.value || 'all';
+
+  const filtered = allBlocked.filter(b => {
+    const matchLevel = level === 'all' || b.threatType === level;
+    const matchQ     = !q ||
+      (b.subject     || '').toLowerCase().includes(q) ||
+      (b.senderEmail || '').toLowerCase().includes(q) ||
+      (b.userEmail   || '').toLowerCase().includes(q);
+    return matchLevel && matchQ;
+  });
+
+  renderBlocked(filtered);
+}
+
+function renderBlocked(list) {
+  document.getElementById('bCt').textContent = `${list.length} emails`;
+
+  if (!list.length) {
+    document.getElementById('bTable').innerHTML =
+      '<div class="empty"><i class="fas fa-shield-alt"></i>No threat archive found.</div>';
+    return;
+  }
+
+  const canOv = me?.permissions?.includes('override_threat');
+
+  document.getElementById('bTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th>User</th>
+        <th>Sender</th>
+        <th>Subject</th>
+        <th>Score</th>
+        <th>Level</th>
+        <th>Auth</th>
+        <th>Scanned</th>
+        ${canOv ? '<th>Actions</th>' : ''}
+      </tr></thead>
+      <tbody>
+      ${list.map((b, i) => {
+        const isDang  = b.threatType === 'dangerous';
+        const scoreColor = isDang ? 'td2' : 'tw2';
+        const lvlBadge   = isDang
+          ? '<span class="badge danger"><i class="fas fa-skull-crossbones" style="font-size:8px"></i> Dangerous</span>'
+          : '<span class="badge warn"><i class="fas fa-exclamation-triangle" style="font-size:8px"></i> Suspicious</span>';
+
+        // Auth pill
+        const spfOk  = b.spf  === 'pass';
+        const dkimOk = b.dkim === 'pass';
+        const dmarcOk= b.dmarc=== 'pass';
+        const authBad= (!spfOk || !dkimOk || !dmarcOk);
+        const authPill = authBad
+          ? `<span title="SPF:${b.spf||'?'} DKIM:${b.dkim||'?'} DMARC:${b.dmarc||'?'}"
+               style="font-size:9px;background:rgba(239,68,68,.1);color:#ef4444;padding:2px 6px;border-radius:8px;cursor:help">
+               <i class="fas fa-times-circle" style="font-size:8px"></i> Auth Fail
+             </span>`
+          : `<span style="font-size:9px;background:rgba(16,185,129,.1);color:#10b981;padding:2px 6px;border-radius:8px">
+               <i class="fas fa-check-circle" style="font-size:8px"></i> Auth OK
+             </span>`;
+
+        // Override badge if overridden
+        const ovrBadge = b.overrideLevel
+          ? `<br><span class="badge ov" style="margin-top:3px;font-size:9px" title="Overridden by ${esc(b.overriddenBy||'')}">→ ${esc(b.overrideLevel)}</span>`
+          : '';
+
+        // Attachment icon
+        const attIcon = b.hasAttachment
+          ? `<i class="fas fa-paperclip" style="color:#f59e0b;font-size:10px;margin-left:4px" title="Has attachment"></i>`
+          : '';
+
+        return `<tr>
+          <td class="tm">${i + 1}</td>
+          <td style="font-size:11px">
+            <div class="te" style="font-size:11px">${esc(b.userEmail)}</div>
+            <div class="tm" style="font-size:10px">${esc(b.userName !== b.userEmail ? b.userName : '')}</div>
+          </td>
+          <td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              title="${esc(b.senderEmail)}">${esc(b.senderEmail || '—')}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px"
+              title="${esc(b.subject)}">
+            ${esc(b.subject || '(No Subject)')}${attIcon}
+          </td>
+          <td class="${scoreColor}" style="font-weight:700">${b.score}/100</td>
+          <td>${lvlBadge}${ovrBadge}</td>
+          <td>${authPill}</td>
+          <td class="tm">${fmt(b.scannedAt)}</td>
+          ${canOv ? `<td onclick="event.stopPropagation()"><div class="ab-row">
+            <button class="ab ov" title="Override threat level"
+              onclick="openOverrideModal('${b.emailId}','${esc(b.subject||'')}','${b.threatType}')">
+              <i class="fas fa-edit"></i>
+            </button>
+          </div></td>` : ''}
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(d){if(!d)return'—';try{return new Date(d).toLocaleString('en-GB',{dateStyle:'short',timeStyle:'short'});}catch{return d;}}
 
-// ── Honeypot Sessions ─────────────────────────────────────────
-const HP_PERSONA = {name:'Honeypot', initials:'H'};
+// ── Honeypot Sessions — REAL DATA ────────────────────────────
+const HP_PERSONA = {name:'Genjutsu AI', initials:'G', role:'AI Persona'};
 let hpCurrentFilter = 'all';
 let hpOpenCards     = new Set();
-let hpSessions      = [];
+let HP_SESSIONS_REAL = [];
 
 function hpTimeAgo(isoStr){
   if(!isoStr) return '—';
-  const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
-  if(diff < 60)    return `${diff}s ago`;
-  if(diff < 3600)  return `${Math.floor(diff/60)}m ago`;
-  if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-  return `${Math.floor(diff/86400)}d ago`;
+  const diff=Math.floor((Date.now()-new Date(isoStr))/1000);
+  if(diff<60)return`${diff}s ago`;
+  if(diff<3600)return`${Math.floor(diff/60)}m ago`;
+  if(diff<86400)return`${Math.floor(diff/3600)}h ago`;
+  return`${Math.floor(diff/86400)}d ago`;
 }
 
-function hpScoreColor(replies){
-  // Use replies_sent as a proxy for threat depth — more replies = deeper engagement
-  if(replies >= 6) return '#ef4444';
-  if(replies >= 3) return '#f59e0b';
-  return '#10b981';
-}
+function hpScoreColor(s){ return s>=80?'#ef4444':s>=50?'#f59e0b':'#10b981'; }
 
 function hpFilter(filter, btn){
-  hpCurrentFilter = filter;
-  document.querySelectorAll('.hp-filter-btn').forEach(b => b.classList.remove('active'));
+  hpCurrentFilter=filter;
+  document.querySelectorAll('.hp-filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderHpSessions();
 }
@@ -1226,222 +1607,158 @@ function hpToggleCard(id){
   renderHpSessions();
 }
 
-async function hpTerminate(sessionId){
-  if(!confirm('Terminate this honeypot session? Honeypot will stop replying to this scammer.')) return;
+async function hpTerminate(id){
+  if(!confirm('Terminate this honeypot session?')) return;
   try {
-    const res = await fetch(`/admin/api/honeypot/sessions/${sessionId}`, {method:'DELETE'});
+    const res = await af(`/admin/api/honeypot/sessions/${id}`, {method:'DELETE'});
     const data = await res.json();
     if(data.success){
-      hpOpenCards.delete(sessionId);
+      hpOpenCards.delete(id);
       await loadHoneypot();
     } else {
-      alert(data.error || 'Failed to terminate session.');
+      alert(data.error || 'Could not terminate session.');
     }
-  } catch(e){ alert('Network error terminating session.'); }
+  } catch(e) { alert('Server error.'); }
 }
 
-// Build realistic conversation log from real session DB fields
-// The DB stores replies_sent count + subject + senderEmail + timestamps
-// We reconstruct the conversation arc using the fallback replies from honeypot.js
-// and the real timing data (startedAt, lastReplyAt)
-const HONEYPOT_REPLIES = [
-  "Thank you for getting in touch! This sounds very interesting. Could you please provide more details about the process?",
-  "I'm very keen to proceed! My nephew is a solicitor and he said I need official documentation first. Can you send that?",
-  "Brilliant news! However I'm having a little trouble with my online banking at the moment. Could we use an alternative method?",
-  "I've forwarded everything to my financial advisor. She needs just a few more details before I can proceed. What is your full name and contact number?",
-  "I'm so sorry for the delay! My computer has been playing up. Could you explain the process again step by step? I want to make absolutely sure I understand.",
-  "I accidentally transferred the money to the wrong account number. My bank says they need a reference code from you to reverse it. Could you help?",
-  "My solicitor says there may be a small tax fee before the funds can be released. Is that normal? How much are we talking?",
-  "I've spoken to my bank and they need a signed letter of authority from you. Could you post that to me? I don't trust email for important documents.",
-  "I'm so excited about this! I've told my friends at the church group and they want to join too. Can multiple people participate?",
-  "I think I may have filled in the wrong account details. Could we start the process again from the beginning? I want to make sure everything is correct."
-];
-
-// Reconstruct a plausible message timeline from the session data
-function buildConversationLog(session){
-  const msgs = [];
-  const start  = new Date(session.startedAt || session.started_at).getTime();
-  const end    = new Date(session.lastReplyAt || session.last_reply_at || session.startedAt).getTime();
-  const count  = session.repliesSent || 1;
-  const gap    = count > 1 ? Math.floor((end - start) / (count * 2)) : 15 * 60 * 1000;
-
-  for(let i = 0; i < count; i++){
-    // Scammer message (each exchange: scammer first, then Honeypot)
-    const scammerTs = new Date(start + gap * (i * 2)).toISOString();
-    msgs.push({
-      from: 'attacker',
-      text: i === 0
-        ? `Subject: ${esc(session.subject)} — ${getScammerOpener(session.subject)}`
-        : getScammerFollowUp(i),
-      ts: scammerTs
-    });
-    // Honeypot's reply
-    const honeypotTs = new Date(start + gap * (i * 2 + 1)).toISOString();
-    msgs.push({
-      from: 'persona',
-      text: HONEYPOT_REPLIES[i % HONEYPOT_REPLIES.length],
-      ts: honeypotTs
-    });
+function hpRenderMessages(msgs){
+  if(!msgs || msgs.length === 0){
+    return '<div style="color:#334155;font-size:12px;text-align:center;padding:12px">No messages yet.</div>';
   }
-  return msgs;
-}
-
-function getScammerOpener(subject){
-  const s = (subject||'').toLowerCase();
-  if(s.includes('fund') || s.includes('transfer') || s.includes('million'))
-    return 'I am contacting you regarding a confidential fund transfer that requires your assistance. You will be compensated handsomely.';
-  if(s.includes('job') || s.includes('work') || s.includes('opportunit'))
-    return 'You have been selected for a remote work opportunity paying $5,000/week. No experience required. Please respond urgently.';
-  if(s.includes('prize') || s.includes('winner') || s.includes('lottery'))
-    return 'Congratulations! You have won our international lottery. To claim your $850,000 prize, please provide your bank details immediately.';
-  if(s.includes('invest'))
-    return 'I represent a private investment group offering guaranteed 400% returns in 48 hours. Minimum investment $500. Limited spots available.';
-  return 'I need your urgent assistance with a confidential matter of great financial benefit to you. Please respond at your earliest convenience.';
-}
-
-function getScammerFollowUp(index){
-  const followUps = [
-    'Thank you for your interest! To proceed, I need your full name, bank name, and account number for the transfer.',
-    'We are almost ready to process your share. Please send the processing fee of $200 to activate your account.',
-    'The funds are ready. I just need your verification code and bank routing number to complete the transfer.',
-    'Our agent needs to speak with you. Please provide your phone number and confirm your address for the courier.',
-    'There is a small clearance tax of $150 required by the bank. Once paid, your $4.5M will be released immediately.',
-    'I have been trying to reach you. The offer expires today. Please confirm your bank details now or lose your chance.'
-  ];
-  return followUps[(index-1) % followUps.length];
+  return msgs.map(m => {
+    const isAttacker = m.direction === 'inbound';
+    const initials   = isAttacker ? '⚠' : HP_PERSONA.initials;
+    const label      = isAttacker ? (m.from || 'Scammer') : HP_PERSONA.name;
+    return `
+    <div class="hp-msg ${isAttacker?'attacker':'persona'}">
+      <div class="hp-msg-av">${initials}</div>
+      <div>
+        <div class="hp-msg-bubble">${esc(m.body || '')}</div>
+        <div class="hp-msg-time">${label} · ${hpTimeAgo(m.sentAt)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderHpSessions(){
-  const filtered = hpSessions.filter(s => {
-    if(hpCurrentFilter === 'all')    return true;
-    if(hpCurrentFilter === 'active') return s.status === 'active';
-    if(hpCurrentFilter === 'ended')  return s.status === 'ended';
+  const sessions = HP_SESSIONS_REAL;
+  const filtered = sessions.filter(s=>{
+    if(hpCurrentFilter==='all')        return true;
+    if(hpCurrentFilter==='active')     return s.status==='active';
+    if(hpCurrentFilter==='suspicious') return s.status==='suspicious';
+    if(hpCurrentFilter==='terminated') return s.status==='ended'||s.status==='terminated';
     return true;
   });
 
   document.getElementById('hpLastRefresh').textContent = 'Updated just now';
 
   if(!filtered.length){
-    document.getElementById('hpSessions').innerHTML = `
-      <div class="empty">
-        <i class="fas fa-bug" style="color:#f59e0b"></i>
-        ${hpCurrentFilter === 'all'
-          ? 'No honeypot sessions yet. Sessions appear here when users engage scammers.'
-          : `No ${hpCurrentFilter} sessions.`}
-      </div>`;
+    document.getElementById('hpSessions').innerHTML=`<div class="empty"><i class="fas fa-bug" style="color:#f59e0b"></i>No honeypot sessions found.</div>`;
     return;
   }
 
-  document.getElementById('hpSessions').innerHTML = filtered.map(s => {
-    const isOpen    = hpOpenCards.has(s.sessionId);
-    const replies   = s.repliesSent || 0;
-    const scoreColor = hpScoreColor(replies);
-    const isActive  = s.status === 'active';
+  document.getElementById('hpSessions').innerHTML = filtered.map(s=>{
+    const isOpen     = hpOpenCards.has(s.sessionId);
+    const msgCount   = s.repliesSent || 0;
+    const scoreColor = '#f59e0b';
 
-    const statusBadge = isActive
+    const statusBadge = s.status==='active'
       ? `<span class="hp-badge-active"><span class="blink"></span>Active</span>`
-      : `<span class="hp-badge-term"><i class="fas fa-stop-circle" style="font-size:9px"></i>Ended</span>`;
+      : s.status==='ended'||s.status==='terminated'
+      ? `<span class="hp-badge-term"><i class="fas fa-stop-circle" style="font-size:9px"></i>Ended</span>`
+      : `<span class="hp-badge-warn"><i class="fas fa-exclamation-triangle" style="font-size:9px"></i>${s.status}</span>`;
 
-    // Build conversation inside expanded card
-    let convoHtml = '';
-    if(isOpen){
-      const msgs = buildConversationLog(s);
-      const msgHtml = msgs.map(m => {
-        const isAttacker = m.from === 'attacker';
-        return `
-        <div class="hp-msg ${isAttacker ? 'attacker' : 'persona'}">
-          <div class="hp-msg-av">${isAttacker ? '⚠' : HP_PERSONA.initials}</div>
-          <div>
-            <div class="hp-msg-bubble">${m.text}</div>
-            <div class="hp-msg-time">${isAttacker ? esc(s.senderEmail) : HP_PERSONA.name} · ${hpTimeAgo(m.ts)}</div>
-          </div>
-        </div>`;
-      }).join('');
-
-      // Typing indicator if active and Honeypot hasn't replied to last scammer msg
-      const typingHtml = isActive ? `
-        <div class="hp-msg persona" style="opacity:.55">
-          <div class="hp-msg-av">${HP_PERSONA.initials}</div>
-          <div>
-            <div class="hp-msg-bubble" style="padding:10px 14px">
-              <div class="hp-typing"><span></span><span></span><span></span></div>
-            </div>
-            <div class="hp-msg-time">${HP_PERSONA.name} is composing next reply…</div>
-          </div>
-        </div>` : '';
-
-      convoHtml = `
-      <div class="hp-convo open">
-        <div class="hp-convo-header">
-          <div class="hp-convo-title"><i class="fas fa-comments" style="color:#f59e0b"></i>Conversation Log — ${replies} exchange${replies!==1?'s':''}</div>
-          <div class="hp-convo-actions">
-            ${isActive ? `<button class="hp-terminate-btn" onclick="event.stopPropagation();hpTerminate('${s.sessionId}')"><i class="fas fa-stop-circle"></i> Terminate</button>` : ''}
-          </div>
+    const convoHtml = isOpen ? `
+    <div class="hp-convo open">
+      <div class="hp-convo-header">
+        <div class="hp-convo-title"><i class="fas fa-comments" style="color:#f59e0b"></i>Conversation Log</div>
+        <div class="hp-convo-actions">
+          ${s.status==='active'?`<button class="hp-terminate-btn" onclick="event.stopPropagation();hpTerminate('${s.sessionId}')"><i class="fas fa-stop-circle"></i> Terminate</button>`:''}
         </div>
-        <div class="hp-attacker-info">
-          <div><div class="hp-ai">Attacker Email</div><div class="hp-av2">${esc(s.senderEmail)}</div></div>
-          <div><div class="hp-ai">Subject</div><div class="hp-av2">${esc(s.subject || '—')}</div></div>
-          <div><div class="hp-ai">Time Wasted</div><div class="hp-av2" style="color:#10b981;font-weight:700">${s.minutesWasted || 0} min</div></div>
-        </div>
-        <div>${msgHtml}${typingHtml}</div>
-      </div>`;
-    }
+      </div>
+      <div class="hp-attacker-info">
+        <div><div class="hp-ai">Scammer Email</div><div class="hp-av2">${esc(s.senderEmail||'—')}</div></div>
+        <div><div class="hp-ai">User</div><div class="hp-av2">${esc(s.userEmail||'—')}</div></div>
+        <div><div class="hp-ai">Replies Sent</div><div class="hp-av2" style="color:#f59e0b;font-weight:700">${s.repliesSent||0}</div></div>
+      </div>
+      <div id="hp-msgs-${s.sessionId}"><div style="color:#334155;font-size:12px;text-align:center;padding:12px"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div></div>
+    </div>` : '';
 
     return `
-    <div class="hp-session-card ${isActive ? 'active-session' : ''} ${!isActive ? 'terminated' : ''}">
+    <div class="hp-session-card ${s.status==='active'?'active-session':''} ${s.status==='ended'?'terminated':''}">
       <div class="hp-session-head" onclick="hpToggleCard('${s.sessionId}')">
         <div class="hp-persona-av">${HP_PERSONA.initials}</div>
         <div class="hp-session-info">
           <div class="hp-session-name">
-            ${HP_PERSONA.name}
-            <span style="color:#475569;font-weight:400;font-size:12px">↔</span>
-            <span style="color:#94a3b8">${esc(s.senderEmail)}</span>
+            ${HP_PERSONA.name} <span style="color:#334155;font-weight:400;font-size:11px">↔</span>
+            <span style="color:#94a3b8">${esc(s.senderEmail||'Unknown')}</span>
           </div>
           <div class="hp-session-sub">
-            <span style="color:${scoreColor};font-weight:700">${replies} repl${replies!==1?'ies':'y'} sent</span>
-            &nbsp;·&nbsp;${s.minutesWasted || 0} min wasted
+            ${msgCount} replies sent
+            &nbsp;·&nbsp;${s.minutesWasted||0} min wasted
             &nbsp;·&nbsp;Started ${hpTimeAgo(s.startedAt)}
-            &nbsp;·&nbsp;<span style="color:#64748b">${esc((s.subject||'').substring(0,50))}${(s.subject||'').length>50?'…':''}</span>
+            ${s.userEmail?`&nbsp;·&nbsp;<span style="color:#475569">User: ${esc(s.userEmail)}</span>`:''}
           </div>
         </div>
         <div class="hp-session-meta">
           ${statusBadge}
-          <div class="hp-toggle-btn ${isOpen ? 'open' : ''}"><i class="fas fa-chevron-down"></i></div>
+          <div class="hp-toggle-btn ${isOpen?'open':''}"><i class="fas fa-chevron-down"></i></div>
         </div>
       </div>
       ${convoHtml}
     </div>`;
   }).join('');
+
+  // Load messages for open cards
+  hpOpenCards.forEach(async sessionId => {
+    const msgEl = document.getElementById(`hp-msgs-${sessionId}`);
+    if(!msgEl || msgEl.dataset.loaded) return;
+    msgEl.dataset.loaded = 'true';
+    try {
+      const res  = await af(`/admin/api/honeypot/sessions/${sessionId}/messages`);
+      const data = await res.json();
+      if(data.success) msgEl.innerHTML = hpRenderMessages(data.messages);
+      else msgEl.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px">No messages found.</div>';
+    } catch(_) {
+      msgEl.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px">Could not load messages.</div>';
+    }
+  });
 }
 
 function updateHpStats(stats){
-  document.getElementById('hpTotalSess').textContent  = stats.total          || 0;
-  document.getElementById('hpActiveSess').textContent = stats.active         || 0;
-  document.getElementById('hpTotalMsg').textContent   = stats.totalReplies   || 0;
-  document.getElementById('hpAttackers').textContent  = stats.uniqueAttackers|| 0;
+  if(!stats) return;
+  document.getElementById('hpTotalSess').textContent  = stats.total || 0;
+  document.getElementById('hpActiveSess').textContent = stats.active || 0;
+  document.getElementById('hpTotalMsg').textContent   = stats.totalReplies || 0;
+  document.getElementById('hpAttackers').textContent  = stats.uniqueAttackers || 0;
 }
 
 async function loadHoneypot(){
   document.getElementById('hpSessions').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i></div>';
   try {
-    const res  = await fetch('/admin/api/honeypot/sessions');
+    const res  = await af('/admin/api/honeypot/sessions');
     const data = await res.json();
-    if(!data.success) throw new Error(data.error || 'Failed to load sessions');
-    hpSessions = data.sessions || [];
-    updateHpStats(data.stats || {});
+    if(!data.success) return;
+    HP_SESSIONS_REAL = data.sessions || [];
+    updateHpStats(data.stats);
     renderHpSessions();
+    document.getElementById('hpLastRefresh').textContent = 'Updated just now';
   } catch(err) {
-    document.getElementById('hpSessions').innerHTML = `
-      <div class="empty">
-        <i class="fas fa-exclamation-triangle" style="color:#ef4444"></i>
-        Could not load sessions: ${esc(err.message)}<br>
-        <span style="font-size:12px;color:#64748b;margin-top:6px;display:block">
-          Make sure <code>getAllHoneypotSessions</code> is exported from <code>database/db.js</code>
-        </span>
-      </div>`;
+    document.getElementById('hpSessions').innerHTML = '<div class="empty"><i class="fas fa-exclamation-circle"></i>Could not load sessions.</div>';
   }
 }
 
+// ── Auto session ──────────────────────────────────────────────
+(async()=>{
+  try{
+    const res=await fetch('/admin/api/me',{credentials:'include'});
+    const data=await res.json();
+    if(data.loggedIn){me=data.admin;bootApp();}
+    else{document.getElementById('loginScreen').style.display='flex';}
+  }catch{
+    document.getElementById('loginScreen').style.display='flex';
+  }
+})();
 const st=document.createElement('style');st.textContent='@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';document.head.appendChild(st);
 </script>
 </body>

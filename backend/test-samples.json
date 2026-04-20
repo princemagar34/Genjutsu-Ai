@@ -1,0 +1,422 @@
+[
+  {
+    "from_name": "PayPal Security Team",
+    "from_email": "security@paypal-notification.com",
+    "subject": "Action Required: Your Account Has Been Suspended",
+    "body": "Dear valued customer, we have suspended your PayPal account due to suspicious activity. To verify your identity and restore access, click here: https://ppal-verification.com/restore or login to https://paypal-secure-login.net/ and follow the instructions. Failure to do so within 24 hours will result in permanent account closure. For assistance, contact us at https://paypal-support-center.online/",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Bank of America Security",
+    "from_email": "security@bankofamerica.online",
+    "subject": "Action Required: Unusual Transaction Alert",
+    "body": "Dear valued customer, we have detected an unusual transaction on your account. Please click on this link to confirm: https://bankofamerica-secure.net/confirm or this alternative link: http://bofa-transaction-alert.com. If you do not confirm within the next 24 hours, your account will be temporarily suspended. For immediate assistance, call our 24/7 support line at 1-800-123-4567.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Lucky Draw Team",
+    "from_email": "luckydraw@winnersnotify.com",
+    "subject": "URGENT: Claim Your $1 Million Prize Now",
+    "body": "Dear Winner, Congratulations! You have been selected as a winner of our recent lucky draw. To claim your reward, please click on the following link: https://claimprize.winnersnotify.com/claimnow.php?id=123456 or visit our website at http://www.winnersnotify.com/winners. Please note that you must claim your prize within the next 48 hours or it will be forfeited. You can also contact our customer support team at https://support.winnersnotify.com/contactus. Best regards, Lucky Draw Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Netflix Support",
+    "from_email": "support@netflix-help.com",
+    "subject": "Action Required: Update Your Billing Information",
+    "body": "Dear valued Netflix member, we are writing to inform you that your latest payment has failed. To avoid any interruption in service, please update your billing information immediately by clicking this link: https://netflix-update-billing.info or visit our website at http://www.netflix-account-settings.com. If you do not update your billing information within the next 24 hours, your account will be suspended. To reactivate your account, you will need to contact our customer support team and provide proof of payment. Click here to update now: https://update-netflix-billing-now.online",
+    "label": "phishing"
+  },
+  {
+    "from_name": "IRS Refund Department",
+    "from_email": "refund@irs.gov.online",
+    "subject": "Action Required: Tax Refund Pending",
+    "body": "Dear taxpayer, we have pending tax refund in your name. To receive the refund, please click here: https://irs-refund-claim.com/submit or visit http://taxrefund-processing.net to verify your account. Your prompt response is necessary to avoid any delay. Please confirm your identity by providing your social security number and bank account details. Failure to comply may result in forfeiting your refund. Sincerely, IRS Refund Department",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Apple Support",
+    "from_email": "apple-security-alert@id.apple.com",
+    "subject": "Action Required: Your Apple ID is Locked",
+    "body": "Dear Apple User, we have reason to believe that your Apple ID has been locked due to suspicious activity. To verify your account and unlock your Apple ID, please click on the following link: https://appleid-verify-account.com/ or https://apple-security-alert.net/. If you do not verify your account within the next 24 hours, it will be permanently disabled. Please click on the link and follow the instructions to verify your account. If you have any questions, please contact us at https://apple-support-id.com/. Sincerely, Apple Support Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "DHL Customs Department",
+    "from_email": "dhl.customs@dhl-express.info",
+    "subject": "Urgent: Your Package Held at Customs - Immediate Action Required",
+    "body": "Dear Customer, we have been trying to deliver your package but it has been held at customs due to unpaid duties. To avoid further delays and potential confiscation, please click this link to pay the required fee: https://dhl-customs-fee.com/paynow or visit https://dhl-express-customs.com/track to track your package and settle the outstanding amount. Your prompt attention to this matter is greatly appreciated as this will expedite the clearance process. Please note, failure to comply may result in additional charges and potential loss of your package. Sincerely, DHL Customs Department",
+    "label": "phishing"
+  },
+  {
+    "from_name": "LinkedIn Security",
+    "from_email": "security@linkedin-notification.com",
+    "subject": "Action Required: Verify Your Account Access",
+    "body": "Dear valued LinkedIn member, we detected an unusual login attempt from a new device. To protect your account, please verify your identity immediately by clicking this link: https://linkedin-secure-login.com/verify or this alternative link: http://linkedin-account-security.net/confirm. If you don't verify within 24 hours, your account will be temporarily suspended. For more information, contact our support team at https://linkedin-help-center.info/contact.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Microsoft Support Team",
+    "from_email": "support@m365-services.net",
+    "subject": "Action Required: Your Microsoft 365 Storage is Full",
+    "body": "Dear valued Microsoft 365 user, your storage quota has been exceeded. To avoid data loss and account restrictions, click here to upgrade your storage immediately: https://m365-upgrade-account.xyz or visit https://storage-upgrade.microsoft-office365.cloud to purchase additional storage. Failure to do so within the next 48 hours will result in permanent data loss. For assistance, contact our support team at https://m365-help-center.online",
+    "label": "phishing"
+  },
+  {
+    "from_name": "CryptoWallet Security",
+    "from_email": "security@cryptowallet.io",
+    "subject": "Suspicious Login Detected: Immediate Action Required",
+    "body": "Dear user, we have detected a suspicious login attempt to your CryptoWallet account from an unknown location (IP address: 192.168.1.1). To protect your account and funds, please click on the following link to verify your identity: https://cryptowallet-verification.com/login or https://wallet-security-check.net/confirm. If you do not verify your account within the next 24 hours, it will be temporarily suspended. For more information, please visit: https://cryptowallet-faq.net/suspicious-activity. Thank you for your prompt attention to this matter.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "WhatsApp Security Team",
+    "from_email": "whatsapp-security-team@whatsapp-support.online",
+    "subject": "Action Required: Verify Your WhatsApp Account Immediately",
+    "body": "Dear user, we have detected suspicious activity on your WhatsApp account. To protect your account, please click this link to verify your account: https://whatsapp-verify-account.com/verify/123456 or https://whatsapp-security-center.xyz/confirm/abc123. If you do not verify your account within the next 24 hours, it will be suspended. Click here to verify now: https://whatsapp-verification-page.net/verify-now",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Instagram Support",
+    "from_email": "support@instagr.am",
+    "subject": "Action Required: Your Account Has Been Suspended",
+    "body": "Your Instagram account has been suspended due to suspicious activity. To verify your account and avoid permanent deletion, click here: https://instagr.am-verify.com/verify-account.php?token=123456 or visit https://instagram-security.org to confirm your identity. Please respond within 24 hours to prevent account loss.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Facebook Security Team",
+    "from_email": "security-team@fb-notification.com",
+    "subject": "URGENT: Your Facebook Account Has Been Compromised",
+    "body": "Dear Facebook User, we have detected suspicious activity on your account. To protect your identity, please click here to reset your password immediately: https://fb-reset-password.net or https://facebook-security-reset.com. If you don't take action within the next 24 hours, your account will be suspended. Click here to confirm your account details: https://fb-account-verification.info",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Twitter Security",
+    "from_email": "security@twitter-help.info",
+    "subject": "Action Required: Your Twitter Account Has Been Locked",
+    "body": "We've detected unusual activity on your Twitter account. To confirm your identity and regain access, click here: https://twitter-security-help.com/verify or copy and paste this link into your browser: https://twitter-account-lockout.net/unlock. If you don't take action within 24 hours, your account will be suspended permanently. For more information, visit: https://twitter-help-center.support/",
+    "label": "phishing"
+  },
+  {
+    "from_name": "TikTok Support Team",
+    "from_email": "support@tiktok-helpdesk.info",
+    "subject": "Action Required: Your TikTok Creator Account Has Been Disabled",
+    "body": "Dear valued creator, your TikTok account has been disabled due to suspicious activity. To appeal this decision and regain access, click here: https://tiktok-appeal-center.com/reset and follow the instructions. You must take immediate action within the next 48 hours to avoid permanent deletion of your account. For more information, visit: https://tiktok-creator-help.com/faq. Sincerely, TikTok Support Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "YouTube Support Team",
+    "from_email": "youtube-support@googIe.net",
+    "subject": "Action Required: Your YouTube Channel Has Been Terminated",
+    "body": "Dear YouTube Creator, we regret to inform you that your channel has been terminated due to a violation of our community guidelines. To restore your channel, please click on this link: https://youtuberecovery.page.link/restore-channel and follow the instructions. If you do not take action within the next 48 hours, your channel will be deleted permanently. For more information, visit: https://support-youtube.com/help/restore-channel. Sincerely, The YouTube Support Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Snapchat Security Team",
+    "from_email": "security-alert@snapchat-help.com",
+    "subject": "Action Required: Your Snapchat Account Has Been Compromised",
+    "body": "Dear user, we've detected suspicious activity on your Snapchat account. To verify your identity and secure your account, click here: https://snapchat-verify-account.xyz or https://security.snapchat-login.net. If you don't verify within 24 hours, your account will be permanently suspended. Click the link to verify now and prevent unauthorized access.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Pinterest Support",
+    "from_email": "support@pinterest-security.com",
+    "subject": "Action Required: Your Account Has Been Flagged",
+    "body": "Dear user, your Pinterest account has been flagged due to suspicious activity. To avoid permanent suspension, please update your login credentials immediately by clicking this link: https://pinterest-verification.com/reset or alternatively https://pinterest-security-update.com/login. If you don't update within the next 24 hours, your account will be closed. For further assistance, contact us at https://pinterest-help-center.com/contact. Thank you for your prompt attention to this matter.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Reddit Admin Team",
+    "from_email": "admin@reddit-support.net",
+    "subject": "Action Required: Your Reddit Account Has Been Banned",
+    "body": "We have banned your Reddit account due to suspicious activity. To appeal this decision, you must submit a form within the next 48 hours. Click here to appeal: https://reddit-appeals.com/submit or visit https://www.reddit-help.net/unban to learn more. Failure to comply will result in permanent account suspension.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Telegram Security",
+    "from_email": "security@telegram.info",
+    "subject": "Action Required: Your Telegram Account Has Been Blocked",
+    "body": "Dear user, your Telegram account has been blocked due to suspicious activity. To verify your phone number and regain access, click here: https://telegram-verify-phone.com or https://t.me/verify-account-info. Please act immediately to avoid permanent account suspension. If you have any questions, contact our support team at https://telegram-support-center.net.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "FedEx Customer Support",
+    "from_email": "fedex@fedex-tracking.info",
+    "subject": "Action Required: Undeliverable Package",
+    "body": "Dear Customer, we were unable to deliver your package due to an incorrect address. Please click here to confirm your address: http://fedex-tracking.info/confirm-address.aspx?ID=123456 or visit https://fedex-package-status.com to update your information. If you do not take action within 24 hours, your package will be returned to the sender. Please act quickly to avoid any delays.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "UPS Delivery Team",
+    "from_email": "upsnotifications@delivery-info.com",
+    "subject": "UPS Delivery Failed: Reschedule Immediately",
+    "body": "Dear customer, we regret to inform you that our delivery team was unable to deliver your package due to an issue with the address. To reschedule, please click here: https://ups-reschedule.com/confirm or visit https://ups-info.net/update to update your delivery information. Please act immediately to avoid further delays. Your package will be returned to the sender if we do not hear from you within the next 24 hours. For more information, contact our customer service at 1-800-UPS-HELP or visit https://ups-account.info/login to track your package.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Royal Mail Customer Service",
+    "from_email": "royalmail.delivery@notifications.co.uk",
+    "subject": "Urgent: Your Package is Being Held at the Customs Office",
+    "body": "Dear Customer, we regret to inform you that your package has been held at the customs office due to an unpaid customs fee. Please click on this link https://royalmailcustomsfee.com to pay the fee immediately and arrange for delivery. Alternatively, you can visit https://track.royalmail.online and enter your tracking number to resolve the issue. If you do not take action within the next 48 hours, your package will be returned to the sender. Sincerely, Royal Mail Customer Service Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Amazon Delivery Team",
+    "from_email": "delivery-update@amazon-info.net",
+    "subject": "Action Required: Package Delayed - Update Delivery Address",
+    "body": "Dear valued customer, we regret to inform you that your package has been delayed due to an issue with the delivery address on file. To avoid further delays, please click here to update your delivery address immediately: http://amazon-delivery-update.com/address or visit https://amazon-package-status.net/update to track your package and update your information. Your prompt attention to this matter is greatly appreciated as it will help us ensure timely delivery of your package. If you have any questions or concerns, please do not hesitate to contact us at http://amazon-customer-support.online. Sincerely, Amazon Delivery Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "USPS Delivery Team",
+    "from_email": "delivery@usps-notification.com",
+    "subject": "USPS Delivery Attempt Failed: Claim Parcel Immediately",
+    "body": "Dear Customer, we attempted to deliver a parcel to your address, but it was unsuccessful due to an incorrect address. To claim your parcel, please click on this link: https://usps-parcel-claim.com/parcel/123456 or visit http://usps-delivery-status.net to track and claim your parcel. Please note that if you do not claim your parcel within the next 48 hours, it will be returned to the sender. For more information, contact our customer service at support@usps-notification.com. Urgent action is required to avoid parcel return.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Aramex Support Team",
+    "from_email": "support@aramex-logistics.online",
+    "subject": "Urgent: Your Shipment is Held at Customs",
+    "body": "Dear valued customer, we regret to inform you that your shipment has been held at customs due to unpaid duties. To avoid further delays and penalties, please click here to pay the required amount immediately: https://aramex-customs-fee.com/payment or visit https://track.aramex-logistics.online to view your shipment details. Your prompt attention to this matter is highly appreciated. Please note that failure to settle the payment within the next 48 hours will result in the shipment being returned to the sender. Contact us at support@aramex-logistics.online if you have any questions.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "TNT Courier Service",
+    "from_email": "tnt.delivery.alert@tnt-express.net",
+    "subject": "URGENT: Package Seized - Verify Recipient Information",
+    "body": "Dear valued customer, we regret to inform you that your package has been seized by customs due to incomplete documentation. To avoid further complications, please verify your recipient information by clicking this link: https://tnt-courier-update.com/verify-package or visit our website at http://tnt-express.net/package-release. Failure to comply within 48 hours will result in package destruction. Please click here to print and fill out the required form: https://tnt-courier-forms.com/release-package. Your prompt attention to this matter is greatly appreciated.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Lazada Customer Service",
+    "from_email": "lazada-support@lazada.online",
+    "subject": "Urgent: Your Order Held at Warehouse - Confirm Details",
+    "body": "Dear valued customer, we regret to inform you that your recent order has been held at our warehouse due to incomplete payment information. To avoid cancellation, please confirm your details immediately by clicking this link: https://lazada-secure-login.com/confirm-order or visit https://update-lazada-account.com/payment-update. Failure to do so within the next 24 hours may result in order cancellation. Thank you for your prompt attention to this matter.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Shopify Support",
+    "from_email": "support@shopify-secure.com",
+    "subject": "Action Required: Order Cancellation",
+    "body": "Dear valued customer, we regret to inform you that your recent order has been cancelled due to a payment issue. To avoid any further delays, please reconfirm your payment details by clicking this link: https://shopify-verify-payment.com or alternatively, you can visit https://shopify-account-manager.net to update your information. Please note that failure to do so within the next 24 hours will result in permanent cancellation of your order. For assistance, contact us at support@shopify-helpdesk.net",
+    "label": "phishing"
+  },
+  {
+    "from_name": "eBay Dispute Resolution",
+    "from_email": "disputeresolution@ebaysupport.online",
+    "subject": "Urgent: eBay Purchase Dispute #EBD123456",
+    "body": "Dear eBay User, we have received a dispute regarding your recent purchase. To avoid account suspension, please click here to verify your account: https://ebay-secure-login.com/resolve-dispute or https://ebay-account-management.net/verify-ebd123456. Failure to respond within 24 hours will result in permanent account closure. Please login to review the dispute details and take immediate action.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "HSBC Security Team",
+    "from_email": "security@hsbc-online.net",
+    "subject": "Action Required: Your Online Banking Has Been Suspended",
+    "body": "Dear valued customer, your online banking service has been suspended due to suspicious activity. To reactivate your account, please verify your identity by clicking this link: https://hsbc-verify-account.com/ or alternative link https://hsbc-security-check.net/. Failure to do so within 24 hours will result in permanent account closure. For assistance, contact our support team at +1-800-123-4567. Sincerely, HSBC Security Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Barclays Security Team",
+    "from_email": "barclays.alerts@barclays-online.net",
+    "subject": "Unusual Transaction Detected: Confirm Your Account",
+    "body": "Dear valued customer, we have detected an unusual transaction on your account. Please click on the following link to confirm your account details: https://barclays-secure-login.com/confirm or visit https://barclays-account-update.net for more information. If you do not confirm within 24 hours, your account will be suspended. Please act now to avoid any inconvenience. Best regards, Barclays Security Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Chase Bank Security",
+    "from_email": "security-alert@chaseonline.net",
+    "subject": "Action Required: Your Chase Account Has Been Locked",
+    "body": "Dear valued customer, your Chase Bank account has been temporarily locked due to suspicious activity. To regain access, please click here: https://chase-account-update.com/login and verify your account information immediately. Failure to do so within the next 24 hours may result in permanent account closure. For further assistance, visit: https://chase-help-center.online or call our 24/7 support line at 1-800-555-1234. Sincerely, Chase Bank Security Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Citibank Security Team",
+    "from_email": "securityalerts@citibankonline.net",
+    "subject": "Action Required: Credit Card Declined - Verify Payment Information",
+    "body": "Dear valued customer, we have noticed that your recent transaction was declined due to a potential issue with your credit card information. To avoid any further disruptions to your service, please verify your payment details by clicking on the following link: https://citibank-secure-login.page.ts.net or alternatively, you can visit https://citibank-account-verification.com to update your information. Please note that failure to verify your account within the next 48 hours may result in temporary suspension of your account. For immediate assistance, please contact our customer support team at 1-800-123-4567. Thank you for your prompt attention to this matter.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Wells Fargo Security Team",
+    "from_email": "security-alert@wellsfargomail.com",
+    "subject": "Action Required: Confirm Your Account Information",
+    "body": "Dear valued customer, we have detected unusual activity on your account. To protect your identity and funds, please click here to confirm your login credentials: https://wellsfargosecurelogin.com/verify or https://wf-secure-account.com/confirm. If you do not take immediate action, your account will be temporarily suspended. Please note that this is a one-time verification process and you will not be asked to verify your information again. If you have any questions, please contact our customer support team at 1-800-255-7783.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Standard Chartered Security Team",
+    "from_email": "security-team@stdc-online.net",
+    "subject": "Action Required: Your Account Has Been Flagged",
+    "body": "Dear valued customer, we have reason to believe that your account has been compromised. To protect your account and prevent any potential loss, please click on the following link to verify your account information: https://stdc-verify-account.com or https://stdc-account-security.net. If you do not take immediate action, your account will be suspended. You can also contact our customer support at https://stdc-customer-support.online. Please act now to avoid any inconvenience.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "NIC Asia Bank",
+    "from_email": "nicasiabank.secure@online.net.np",
+    "subject": "Action Required: Verify Transaction with OTP",
+    "body": "Dear valued customer, we have detected an unusual transaction on your account. To verify this transaction and avoid account suspension, please click on the link below and enter your OTP: https://nic-asia-secure-otp.com or https://nicasiabank-verify.online.net.np. If you do not verify within the next 24 hours, your account will be blocked. Please act immediately to avoid any inconvenience. For more information, contact our customer care at https://nicasiabank-support.online.np",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Binance Security Team",
+    "from_email": "security@binance-support.net",
+    "subject": "Urgent: Withdrawal Request Confirmation Required",
+    "body": "Dear valued user, we have received a withdrawal request from your account. To confirm this transaction, please click on the following link: https://binance-secure-portal.com/confirm-withdrawal. If you did not initiate this request, please click here: https://binance-security-center.com/report-suspicious-activity. Your prompt attention to this matter is required to avoid any potential security risks. Failure to confirm may result in temporary account suspension.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Coinbase Support Team",
+    "from_email": "support@coinbase-security.net",
+    "subject": "Action Required: Coinbase Wallet Access Restricted",
+    "body": "Dear user, your Coinbase wallet access has been restricted due to suspicious activity. To verify your account and regain access, click here: https://coinbase-verify-account.com/login or https://cb-wallet-security.com/verify-now. If you do not verify within the next 24 hours, your account will be permanently suspended. For more information, visit: http://coinbase-help-center.info/article/verify-account",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Western Union Team",
+    "from_email": "westernunion@transferalert.net",
+    "subject": "Urgent: Unclaimed Money Transfer Awaiting Pickup",
+    "body": "Dear valued customer, we have a money transfer waiting for you. To claim your funds, please click on this link: https://westernunion-claim.com/transfer/123456 or visit our website at http://wunclaim.net to confirm your identity. Failure to do so within the next 48 hours will result in cancellation of the transfer. Please note that this is a one-time notification and we cannot guarantee the availability of the funds after the deadline. For assistance, reply to this email or call our customer support at 1-800-234-5678. Best regards, Western Union Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Internal Revenue Service",
+    "from_email": "irs.notification@taxgov.info",
+    "subject": "Final Notice: Tax Payment Overdue",
+    "body": "Dear taxpayer, this is your final notice from the Internal Revenue Service. Your tax payment is overdue and immediate action is required to avoid penalties and fines. Please click on this link to settle your debt: http://irs-tax-resolution.com/payment or visit https://tax-portal.secure-irs.com to access your account. Failure to comply will result in further action, including but not limited to, wage garnishment and asset seizure. Your prompt attention to this matter is greatly appreciated. Sincerely, IRS Tax Department",
+    "label": "phishing"
+  },
+  {
+    "from_name": "HM Revenue & Customs",
+    "from_email": "refund@hmrc.gov-uk.online",
+    "subject": "Tax Refund Approved: Immediate Action Required",
+    "body": "Dear Taxpayer, your tax refund of £247.50 has been approved. To receive the refund, please click on the following link to submit your bank details: https://hmrc-refund-submission.online-forms.com. Alternatively, you can visit https://www.hmrc.gov-uk-refund.com and enter your refund code: REF123456. Please note that if you do not submit your details within the next 48 hours, your refund will be cancelled. For more information, contact our support team at support@hmrc-refund.co.uk. Regards, HMRC Refund Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Social Security Administration",
+    "from_email": "ssaalerts@usa.gov.secure.info",
+    "subject": "Urgent: Your Social Security Number Has Been Compromised",
+    "body": "Dear citizen, we have reason to believe your Social Security number has been compromised. Please call our hotline immediately at 1-800-123-4567 to verify your information. Alternatively, you can click on this link to verify online: https://ssaverify.info/ssn-confirmation or visit https://usa.gov.secure.info/ssn-update to update your information. Failure to respond within the next 48 hours may result in suspension of your benefits.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "COVID Relief Team",
+    "from_email": "covid-relief@gov-aid.com",
+    "subject": "URGENT: Claim Your COVID Relief Payment",
+    "body": "Dear citizen, you are eligible for a COVID relief payment. To claim your payment, click here: https://covid-relief-claim.net/submit or visit https://gov-aid.org/claim-now. Your payment will expire in 48 hours if not claimed. For more information, contact us at https://covid-relief-support.io/",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Passport Renewal Department",
+    "from_email": "passport.renewal@usgov.online",
+    "subject": "Urgent: Passport Renewal Required Immediately",
+    "body": "Dear Citizen, your passport is set to expire soon and you are required to renew it immediately to avoid any travel disruptions. Please submit your documents now by clicking on this link: https://passportrenewal.usgov.online/renewal/form or visit our website at http://uspassrenewal.com to download the application form. Failure to comply may result in penalties and delays in your travel plans. Please note that this is an urgent matter and requires your immediate attention. For more information, contact us at https://passportrenewal.usgov.online/contact",
+    "label": "phishing"
+  },
+  {
+    "from_name": "DMV Online Services",
+    "from_email": "dmv.notifications@email.dmv.gov.uk",
+    "subject": "URGENT: Driving License Suspension - Immediate Action Required",
+    "body": "Dear License Holder, your driving license has been suspended due to unpaid fines. To reinstate your license, you must pay the outstanding amount of £250 within the next 24 hours. Failure to do so will result in permanent revocation. Click here to pay online: https://dmv-payment-portal.co.uk/payfines or visit https://driving-licence-portal.com/suspended to check your license status. For further assistance, contact our support team at support@dmv-helpdesk.com. Sincerely, DMV Online Services",
+    "label": "phishing"
+  },
+  {
+    "from_name": "US Immigration Support",
+    "from_email": "updates@usimmigrationservices.org",
+    "subject": "Action Required: Immigration Visa Application Update",
+    "body": "Dear Applicant, your immigration visa application requires an immediate update. Please click on this link to verify your information: https://usimmigrationportal.secure-access.net/verifynow or alternatively visit https://immigrationservices.usgov.net/login to login to your account. Failure to update your application within the next 72 hours may result in rejection. Please note that this is a one-time notification and you will not receive further reminders. For any questions, please contact our support team at support@usimmigrationservices.org.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Detective James",
+    "from_email": "cybercrime@police.govt.uk",
+    "subject": "Urgent: Your Account Has Been Compromised",
+    "body": "Dear User, we have reason to believe your account has been accessed by an unauthorized party. Please click here http://update.policecybercrime-unit.com to verify your account and prevent further unauthorized access. If you do not verify within the next 24 hours, your account will be suspended. For more information, visit http://www.policecybercrime-unit.info. Sincerely, Detective James",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Court Clerk",
+    "from_email": "court.notifications@uscourt.gov",
+    "subject": "URGENT: Court Summons Issued - Immediate Action Required",
+    "body": "Dear recipient, a court summons has been issued in your name. To view the details, download the attached notice: <a href='http://us-courtdocs.s3.amazonaws.com/summon_12345.pdf'>Click here to download</a> or visit http://courtdocs.online/summons/12345 for more information. Failure to respond within 72 hours may result in further action. Sincerely, Court Clerk",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Medicare Benefits Administration",
+    "from_email": "medicare.update@benefits.gov.online",
+    "subject": "Action Required: Update Your Medicare Information",
+    "body": "Dear Medicare Beneficiary, your benefits are set to expire on March 31st, 2024. To avoid interruption in your coverage, please click here to update your information: https://medicare-benefits-update.com/verify or log in to your account at https://www.medicare.gov.login-now.com. If you have any questions, contact our support team at 1-800-MEDICARE-1 (1-800-633-4227) or reply to this email. Sincerely, Medicare Benefits Administration. P.S. Please update your information within the next 48 hours to ensure uninterrupted benefits.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Google Security Team",
+    "from_email": "google.security.team@gmail-support.net",
+    "subject": "Action Required: Unusual Activity on Your Google Account",
+    "body": "Dear Google User, we have detected unusual activity on your account. To protect your account, please click this link to verify your identity: https://google-accounts-security-check.online or https://google-account-verification-center.com. If you do not take action within 48 hours, your account will be suspended. For more information, visit: https://google-help-center.support",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Zoom Support Team",
+    "from_email": "zoom-support@zoom-info.net",
+    "subject": "Action Required: Your Zoom Account Has Been Suspended",
+    "body": "Dear valued user, your Zoom account has been suspended due to suspicious activity. To reactivate your account, please click here: https://zoom-verification.com/reactivate-account.aspx or copy and paste this link into your browser: http://zoom-account-support.com/verify/123456. Failure to do so within the next 24 hours will result in permanent deletion of your account. For immediate assistance, contact our support team at: https://zoom-helpdesk.online/contact",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Dropbox Support Team",
+    "from_email": "dropbox-alerts@dropbox-notification.com",
+    "subject": "Storage Full: Upgrade Required Immediately",
+    "body": "Dear Dropbox User, your storage is almost full. To avoid losing access to your files, click here to upgrade now: https://dropbox-upgrade-account.com or https://www.dropbox-storage-upgrade.net. If you don't upgrade within the next 48 hours, your account will be suspended. For more information, visit: http://dropbox-account-info.com.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Adobe Subscription Team",
+    "from_email": "adobe-renewal@adobenotifications.net",
+    "subject": "Action Required: Adobe Subscription Expired",
+    "body": "Dear valued customer, your Adobe subscription has expired. To avoid interruption of services and potential data loss, renew now by clicking this link: https://adobesubscriptionrenewal.xyz or https://renewadobeaccount.info. If you have already renewed, please disregard this email. However, if you are experiencing issues with your account, contact our support team at https://adobesupport247.online. Renewal is crucial to maintain access to your Adobe apps and files. Please renew within the next 24 hours to avoid account suspension.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Spotify Support",
+    "from_email": "support@spotify-accounts.com",
+    "subject": "Action Required: Update Your Billing Information",
+    "body": "Dear Spotify User, we were unable to process your recent payment for Spotify Premium. To avoid interruption of your service, please click here to update your billing information: https://spotify-acc-info-update.net. If you don't update your billing information within the next 48 hours, your account will be downgraded to the free version. You can also log in to your account directly at https://spotify-secure-login-page.com to verify your payment details. Please note that this is an automated message, and for security purposes, do not reply to this email. Sincerely, The Spotify Team.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Steam Support",
+    "from_email": "steamsecurity@steamservices.net",
+    "subject": "Action Required: Trade Hold on Your Account",
+    "body": "Dear valued Steam user, we have placed a trade hold on your account due to suspicious activity. To verify your identity and lift the hold, please click this link: https://steamverify-id.com/verifytradehold. Alternatively, you can copy and paste this URL into your browser: http://steam-tradecompliance.checksteamaccount.info. Please act quickly to avoid further restrictions on your account. Your prompt response is necessary to ensure uninterrupted access to your Steam library.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Norton Antivirus Team",
+    "from_email": "support@norton-antivirus.net",
+    "subject": "URGENT: Norton Antivirus Subscription Expiration",
+    "body": "Dear valued customer, your Norton Antivirus subscription has expired. To avoid any potential security risks and maintain protection, renew immediately by clicking this link: https://norton-antivirus-renewal.com/renewal?subscription=123456. Alternatively, you can log in to your account at https://norton-antivirus-account.com/login to manage your subscription. Please act now to ensure uninterrupted service. Sincerely, Norton Antivirus Team",
+    "label": "phishing"
+  },
+  {
+    "from_name": "McAfee Security Team",
+    "from_email": "mcafeealert@mcafeesupport.net",
+    "subject": "URGENT: Virus Detected on Your Device",
+    "body": "Dear valued customer, our system has detected a severe virus on your device. To avoid data loss and protect your personal information, click here to download the removal tool: <a href='http://mcafeevirusremoval.xyz'>http://mcafeevirusremoval.xyz</a> or visit our support page: <a href='https://mcafeesupportportal.online'>https://mcafeesupportportal.online</a> to activate your antivirus software. Please act immediately to ensure your safety. Your prompt response is greatly appreciated.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "Microsoft Support Team",
+    "from_email": "microsoft-alerts@microsoft-online.net",
+    "subject": "URGENT: Your Windows License Has Expired",
+    "body": "Dear Windows User, your license has expired. Click here to reactivate: https://activate-windows-license.online or https://microsoft-activation-center.com. If not activated within 24 hours, your access will be restricted. Contact support at +1-800-123-4567 for assistance.",
+    "label": "phishing"
+  },
+  {
+    "from_name": "iCloud Support",
+    "from_email": "no-reply@icloud-services.net",
+    "subject": "Action Required: Your iCloud Storage is Full",
+    "body": "Dear valued customer, your iCloud storage has reached its limit. To avoid losing your important data, you must upgrade your storage plan immediately. Click here to upgrade now: https://icloud-upgrade-account.com or visit https://www.icloud-storage-manager.net to manage your account. If you do not take action within the next 48 hours, your data will be deleted permanently. For more information, contact our support team at https://icloud-help-center.info.",
+    "label": "phishing"
+  }
+]

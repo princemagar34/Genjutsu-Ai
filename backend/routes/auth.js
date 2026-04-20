@@ -16,8 +16,31 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/auth/failed' }),
+  passport.authenticate('google', { failureRedirect: '/auth/suspended' }),
   (req, res) => { req.session.user = req.user; res.redirect(process.env.FRONTEND_URL || 'https://genjutsu.org'); }
+);
+
+router.get('/suspended', (req, res) =>
+  res.status(403).send(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>Account Suspended — Genjutsu</title>
+    <style>
+      body { font-family: sans-serif; background: #0f172a; color: #f8fafc;
+             display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+      .box { text-align: center; padding: 40px; background: #1e293b; border-radius: 12px; max-width: 400px; }
+      h2 { color: #ef4444; } p { color: #94a3b8; }
+      a { color: #818cf8; }
+    </style></head>
+    <body>
+      <div class="box">
+        <h2>🚫 Account Suspended</h2>
+        <p>Your account has been suspended by the administrator.</p>
+        <p>Contact <a href="mailto:princemagar338@gmail.com">princemagar338@gmail.com</a> for support.</p>
+      </div>
+    </body>
+    </html>
+  `)
 );
 
 router.get('/failed', (req, res) =>

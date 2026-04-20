@@ -2,5 +2,9 @@ name = "genjutsu"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-[site]
-bucket = "./"
+# Modern Workers Assets — replaces the old [site] + kv-asset-handler approach.
+# Wrangler automatically binds env.ASSETS to serve files from this directory.
+assets = { directory = "./" }
+
+[vars]
+BACKEND_HOST = "https://genjutsu-644123621234.asia-south1.run.app"

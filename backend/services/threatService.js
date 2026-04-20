@@ -192,6 +192,7 @@ function scanAttachments(email) {
 
   return { penalty: Math.min(penalty, 80), issues, details };
 }
+
 const TRUSTED_DOMAINS = [
   'google.com', 'googlemail.com', 'accounts.google.com', 'mail.google.com',
   'microsoft.com', 'outlook.com', 'apple.com', 'amazon.com', 'amazon.co.uk',
@@ -201,29 +202,77 @@ const TRUSTED_DOMAINS = [
 
 const SYSTEM_SENDERS = /mailer-daemon|postmaster|delivery.*subsystem|mail.*delivery/i;
 
-function analyseEmail(email) {
+// ── Google Safe Browsing API check ───────────────────────────
+async function checkUrlsSafeBrowsing(urls) {
+  if (!process.env.SAFE_BROWSING_API_KEY || urls.length === 0)
+    return { penalty: 0, issues: [] };
+
+  try {
+    const https   = require('https');
+    const payload = JSON.stringify({
+      client: { clientId: 'genjutsu', clientVersion: '1.0' },
+      threatInfo: {
+        threatTypes:      ['MALWARE','SOCIAL_ENGINEERING','UNWANTED_SOFTWARE','POTENTIALLY_HARMFUL_APPLICATION'],
+        platformTypes:    ['ANY_PLATFORM'],
+        threatEntryTypes: ['URL'],
+        threatEntries:    urls.map(u => ({ url: u }))
+      }
+    });
+
+    return new Promise((resolve) => {
+      const options = {
+        hostname: 'safebrowsing.googleapis.com',
+        path:     `/v4/threatMatches:find?key=${process.env.SAFE_BROWSING_API_KEY}`,
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+      };
+
+      const req = https.request(options, res => {
+        let raw = '';
+        res.on('data', c => { raw += c; });
+        res.on('end', () => {
+          try {
+            const data    = JSON.parse(raw);
+            const matches = data.matches || [];
+            if (matches.length === 0) return resolve({ penalty: 0, issues: [] });
+            const issues = matches.map(m =>
+              `Safe Browsing: ${m.threatType} detected in URL: ${m.threat.url}`
+            );
+            resolve({ penalty: Math.min(matches.length * 50, 100), issues });
+          } catch { resolve({ penalty: 0, issues: [] }); }
+        });
+      });
+      req.on('error', () => resolve({ penalty: 0, issues: [] }));
+      req.write(payload);
+      req.end();
+    });
+  } catch { return { penalty: 0, issues: [] }; }
+}
+
+async function analyseEmail(email) {
   const fromLower    = (email.from || '').toLowerCase();
   const senderDomain = (fromLower.match(/@([\w.-]+)/) || [])[1] || '';
 
   if (SYSTEM_SENDERS.test(fromLower)) {
-    return { emailId: email.id, level: 'safe', score: 0,
+    return { emailId: email.id, level: 'safe', subType: null, score: 0,
              reasons: ['System delivery notification'],
              mlResult: { label: 'safe', confidence: 0 },
              nlpFeatures: {}, authDetails: {},
              scannedAt: new Date().toISOString() };
   }
   if (TRUSTED_DOMAINS.some(d => senderDomain === d || senderDomain.endsWith('.' + d))) {
-    const cappedResult = analyseEmailUncapped(email);
+    const cappedResult = await analyseEmailUncapped(email);
     cappedResult.score = Math.min(cappedResult.score, 25);
     cappedResult.level = cappedResult.score >= 30 ? 'suspicious' : 'safe';
+    // Clear subType if capped to safe
+    if (cappedResult.level === 'safe') cappedResult.subType = null;
     return cappedResult;
   }
 
-  return analyseEmailUncapped(email);
+  return await analyseEmailUncapped(email);
 }
 
-// analyseEmailUncapped — synchronous, no external API calls
-function analyseEmailUncapped(email) {
+async function analyseEmailUncapped(email) {
   const reasons = [];
   let   score   = 0;
   const bodyLower    = ((email.body || '') + ' ' + (email.subject || '')).toLowerCase();
@@ -257,6 +306,16 @@ function analyseEmailUncapped(email) {
     score += 15; reasons.push(`High link count (${email.links.length})`);
   }
 
+  // Layer 5b: Google Safe Browsing API — catches real phishing/malware URLs
+  // ── CHANGE: track sbPenalty separately so subType logic can read it below ──
+  let sbPenalty = 0;
+  if ((email.links || []).length > 0) {
+    const sbResult = await checkUrlsSafeBrowsing(email.links.slice(0, 10));
+    sbPenalty = sbResult.penalty;
+    score += sbPenalty;
+    reasons.push(...sbResult.issues);
+  }
+
   // Layer 6: Real SPF/DKIM/DMARC header parsing
   const auth = checkSenderAuthentication(email);
   score += auth.penalty;
@@ -287,9 +346,32 @@ function analyseEmailUncapped(email) {
 
   const level = score >= 60 ? 'dangerous' : score >= 30 ? 'suspicious' : 'safe';
 
+  // ── CHANGE: Sub-type classification (post-analysis enrichment) ───────────
+  // After all 9 layers run, we assign a sub-type label so the dashboard can
+  // split threats across 4 cards (Phishing, Malware Links, Spoofed Senders, Other).
+  // Priority order: malware_link > spoofed_sender > phishing > other
+  // Safe emails get null — they never appear on the threat cards.
+  let subType = null;
+  if (level !== 'safe') {
+    if (sbPenalty > 0) {
+      // Google Safe Browsing confirmed a malicious URL in this email
+      subType = 'malware_link';
+    } else if (auth.penalty > 0) {
+      // SPF / DKIM / DMARC failure — sender is impersonating a domain
+      subType = 'spoofed_sender';
+    } else if (reasons.some(r => r.includes('Phishing keyword') || r.includes('ML Classifier'))) {
+      // Naive Bayes or keyword match triggered — classic phishing content
+      subType = 'phishing';
+    } else {
+      // Caught by urgency words, link count, attachment, or NLP — doesn't fit above
+      subType = 'other';
+    }
+  }
+
   return {
     emailId:           email.id,
     level,
+    subType,                          // ← NEW: 'phishing' | 'malware_link' | 'spoofed_sender' | 'other' | null
     score:             Math.min(score, 100),
     reasons:           [...new Set(reasons)],
     mlResult,
@@ -300,8 +382,8 @@ function analyseEmailUncapped(email) {
   };
 }
 
-function scanEmails(emails) {
-  return emails.map(email => analyseEmail(email));
+async function scanEmails(emails) {
+  return Promise.all(emails.map(email => analyseEmail(email)));
 }
 
 module.exports = { analyseEmail, scanEmails };
