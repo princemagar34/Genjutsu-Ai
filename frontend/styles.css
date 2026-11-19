@@ -2873,8 +2873,9 @@ div.main-content { margin-left: 0 !important; }
 /* ===== DARK THEME = BLACK (not navy) ===========================
    Neutral near-blacks from the Refresh 1 · Dark design.
    ============================================================ */
-:root,
-[data-theme="dark"] {
+/* Not plain :root here: :root also matches in light mode and, coming after the
+   light block, would override it — which made the light switch do nothing. */
+:root:not([data-theme="light"]) {
     --bg-primary: #0b0d12;      /* page */
     --bg-secondary: #12151c;    /* cards, header, menus */
     --bg-tertiary: #1c212c;     /* inputs, secondary buttons */
