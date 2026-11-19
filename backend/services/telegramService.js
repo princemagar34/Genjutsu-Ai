@@ -4,43 +4,46 @@
 // ============================================================
 const axios = require('axios');
 
+// Telegram is blocked by internet providers in Nepal (since July 2025), and a wrong
+// bot token returns "Not Found". Either way, don't keep trying for every email:
+// pause alerts for a while after a failure and only log it once.
+const PAUSE_MS = 30 * 60 * 1000;
+let pausedUntil = 0;
+let disabledReason = null;
+
 async function send(text) {
   if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
+  if (disabledReason || Date.now() < pausedUntil) return;
   try {
     await axios.post(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      { chat_id: process.env.TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }
+      { chat_id: process.env.TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' },
+      { timeout: 8000 }
     );
   } catch (err) {
-    console.warn('⚠️  Telegram failed:', err.response?.data?.description || err.message);
+    const status = err.response?.status;
+    if (status === 401 || status === 404) {
+      disabledReason = 'bot token is wrong or the bot was deleted';
+      console.warn(`⚠️  Telegram alerts turned off: ${disabledReason} (check TELEGRAM_BOT_TOKEN, then restart).`);
+    } else {
+      pausedUntil = Date.now() + PAUSE_MS;
+      console.warn(`⚠️  Telegram unreachable (${err.response?.data?.description || err.code || err.message}). Pausing alerts for 30 min.`);
+    }
   }
-}
-
-async function sendThreatAlert({ level, subject, from, score, reasons }) {
-  const emoji     = level === 'dangerous' ? '🚨' : '⚠️';
-  const topReason = reasons && reasons.length > 0 ? reasons[0] : 'Threat detected';
-  await send(
-    `${emoji} <b>Genjutsu — ${level.toUpperCase()} EMAIL</b>\n\n` +
-    `📧 <b>Subject:</b> ${esc(subject)}\n` +
-    `👤 <b>From:</b> ${esc(from)}\n` +
-    `🎯 <b>Threat Score:</b> ${score}/100\n` +
-    `🔍 <b>Reason:</b> ${esc(topReason)}\n\n` +
-    `🛡️ <i>Genjutsu has flagged this email.</i>`
-  );
-}
-
-async function sendHoneypotAlert({ senderEmail, subject }) {
-  await send(
-    `🍯 <b>Genjutsu — Honeypot Activated</b>\n\n` +
-    `🤖 Auto-reply sent to scammer\n` +
-    `📧 <b>To:</b> ${esc(senderEmail)}\n` +
-    `📝 <b>Subject:</b> ${esc(subject)}\n\n` +
-    `⏱️ <i>Wasting their time so they cannot waste yours!</i>`
-  );
 }
 
 function esc(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-module.exports = { sendThreatAlert, sendHoneypotAlert };
+function status() {
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return 'off';
+  if (disabledReason) return 'broken';
+  if (Date.now() < pausedUntil) return 'paused';
+  return 'on';
+}
+
+// For admin alerts (e.g. a login from a new device). Fire and forget.
+const sendAdminAlert = (text) => send(`🛡️ <b>Genjutsu admin</b>\n\n${esc(text)}`);
+
+module.exports = { sendAdminAlert, status };

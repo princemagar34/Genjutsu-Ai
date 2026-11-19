@@ -1,147 +1,109 @@
 // routes/analytics.js — async PostgreSQL version
 const express         = require('express');
 const { requireAuth } = require('../middleware/authMiddleware');
-const { fetchEmails } = require('../services/gmailService');
+const { fetchEmails } = require('../services/mail');   // Gmail, Outlook or IMAP
 const { analyseEmail } = require('../services/threatService');
 const { getScanHistory, saveEmailScan, getThreatOverride, query, getSystemSetting } = require('../database/db');
+const { getScanContext } = require('../database/db');
 
 const router = express.Router();
 
+// ── GET /analytics/dashboard ─────────────────────────────────
+// 1. Scan the newest emails in the mailbox and save the results (if the mailbox is
+//    reachable; a failure here never hides the numbers already saved).
+// 2. Count everything from the saved scans of the last 30 days: newest scan of each
+//    email, with user/admin level changes applied, quarantined emails included.
+const { recordToEmail, nptDay, NPT_MS } = require('../services/threatRecords');
+const REASON_GROUPS = [
+  [/look-alike|lookalike/i, 'Look-alike domain'], [/display name|impersonat/i, 'Impersonation'], [/reply-to/i, 'Reply-To mismatch'],
+  [/hidden link/i, 'Hidden link'], [/payment|bank details|invoice|wire/i, 'Payment fraud'], [/new domain/i, 'New domain'],
+  [/attachment/i, 'Risky attachment'], [/spf|dkim|dmarc|authentication/i, 'Failed sender checks'], [/ip address|ip-address/i, 'IP-address link'],
+  [/safe browsing/i, 'Known bad link'], [/global block list/i, 'Blocked domain'], [/ML Classifier|phishing keyword|urgen/i, 'Phishing wording'],
+  [/link/i, 'Suspicious link'],
+];
+const groupOf = (reason) => (REASON_GROUPS.find(([re]) => re.test(reason)) || [null, 'Other'])[1];
+
 router.get('/analytics/dashboard', requireAuth, async (req, res) => {
+  const userId = req.session.user.id;
+  let scanError = null;
   try {
-    // ── Read max scan limit from admin System Settings ────────
-    const maxSetting = await getSystemSetting('max_emails_scan');
-    const scanLimit  = parseInt(maxSetting) || 100;
-    const emails     = await fetchEmails(req.session.user.accessToken, scanLimit);
+    const scanLimit = parseInt(await getSystemSetting('max_emails_scan')) || 100;
+    const emails = await fetchEmails(req.session.user, scanLimit);
+    const seen = new Set();
+    const unique = emails.filter(e => !seen.has(e.id) && seen.add(e.id));
+    try { await require('../services/attachmentScanner').prepare(req.session.user, unique); } catch (e) { console.warn('[attachments]', e.message); }
+    const scanCtx = await getScanContext(userId);
+    for (const email of unique) {
+      try { await saveEmailScan(email, await analyseEmail(email, scanCtx), userId); } catch (_) { /* one bad email never stops the rest */ }
+    }
+  } catch (err) { scanError = err.message; }
 
-    // Deduplicate by Gmail message ID before scanning
-    const seenIds = new Set();
-    const uniqueEmails = emails.filter(e => {
-      if (seenIds.has(e.id)) return false;
-      seenIds.add(e.id);
-      return true;
-    });
+  try {
+    const all = (await require('../database/db').getUserThreatRecords(userId, 30)).map(recordToEmail);
+    const lv = (l) => all.filter(e => e.threat.level === l);
+    const dangerous = lv('dangerous'), suspicious = lv('suspicious'), safe = lv('safe');
+    const threats = [...dangerous, ...suspicious];
 
-    const scanned = await Promise.all(uniqueEmails.map(async email => {
-      try { return { ...email, threat: await analyseEmail(email) }; }
-      catch(e) { return { ...email, threat: { level:'safe', score:0, reasons:[], mlResult:{}, nlpFeatures:{} } }; }
-    }));
-    const userId  = req.session.user.id;
-
-    // ── Save scans to DB so getScanHistory returns real data ──
-    for (const email of scanned) {
-      try { await saveEmailScan(email, email.threat, userId); }
-      catch (_) { /* don't let a save failure break the response */ }
+    // Last 7 days, by the day each email arrived (Nepal time)
+    const labels = [], keys = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() + NPT_MS - i * 864e5);
+      keys.push(d.toISOString().slice(0, 10));
+      labels.push(d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }));
+    }
+    const threatData = keys.map(() => 0), safeData = keys.map(() => 0);
+    for (const e of all) {
+      const k = keys.indexOf(nptDay(e.date) || nptDay(e.threat?.scannedAt));
+      if (k < 0) continue;
+      if (e.threat.level === 'safe') safeData[k]++; else threatData[k]++;
     }
 
-    // ── Merge overrides so stats reflect user/admin reclassifications ──
-    const withOverrides = await Promise.all(scanned.map(async email => {
-      try {
-        const dbEmailId = `${userId}-${email.id}`;
-        const override  = await getThreatOverride(dbEmailId);
-        if (override) {
-          return {
-            ...email,
-            threat: { ...email.threat, level: override.new_level || email.threat.level }
-          };
-        }
-      } catch (_) {}
-      return email;
-    }));
+    // What made emails threats (threats only, one count per email per kind of reason)
+    const groups = {};
+    for (const e of threats) for (const g of new Set((e.threat.reasons || []).map(groupOf))) groups[g] = (groups[g] || 0) + 1;
+    const top = Object.entries(groups).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
-    const dangerous  = withOverrides.filter(e => e.threat.level === 'dangerous');
-    const suspicious = withOverrides.filter(e => e.threat.level === 'suspicious');
-    const safe       = withOverrides.filter(e => e.threat.level === 'safe');
-
-    // ── Fixed 7-day range ─────────────────────────────────────
-    const range   = 7;
-    const history = await getScanHistory(userId, range);
-
-    const labels     = [];
-    const threatData = [];
-    const safeData   = [];
-
-    // Nepal is UTC+5:45. Cloud Run runs in UTC, so new Date() gives UTC dates.
-    // Without this offset, dates near midnight NPT fall on the wrong day in the chart.
-    const NPT_OFFSET_MS = (5 * 60 + 45) * 60 * 1000;
-
-    for (let i = range - 1; i >= 0; i--) {
-      // Compute today's date in NPT, then subtract i days
-      const nowNPT = new Date(Date.now() + NPT_OFFSET_MS);
-      nowNPT.setUTCHours(0, 0, 0, 0);
-      nowNPT.setUTCDate(nowNPT.getUTCDate() - i);
-      const key   = nowNPT.toISOString().split('T')[0]; // YYYY-MM-DD in NPT
-      const label = nowNPT.toLocaleDateString('en-US', { weekday: 'short' });
-
-      const row = history.find(h => {
-        const rowDate = h.scan_date instanceof Date
-          ? h.scan_date.toISOString().split('T')[0]
-          : String(h.scan_date).split('T')[0];
-        return rowDate === key;
-      });
-
-      labels.push(label);
-      const dangerous  = row ? parseInt(row.dangerous  || 0) : 0;
-      const suspicious = row ? parseInt(row.suspicious || 0) : 0;
-      threatData.push(dangerous + suspicious);
-      // 'safe' column is now explicitly returned by getScanHistory
-      safeData.push(row ? parseInt(row.safe || 0) : 0);
-    }
-
-    // ── Pie chart — real reason counts from scanned emails ───
-    const typeCount = {};
-    scanned.forEach(e => {
-      e.threat.reasons.forEach(r => {
-        const key = r.split(':')[0].trim();
-        typeCount[key] = (typeCount[key] || 0) + 1;
-      });
-    });
-
-    // ── Threat sub-type counts — powers the 4 Threat Analysis cards ──
-    // Reads threat_subtype from scan_results so the counts reflect real
-    // sub-classification (phishing, malware_link, spoofed_sender, other).
-    // Falls back to 0 for any subtype not yet present in the DB.
-    let threatSubtypes = { phishing: 0, malware_link: 0, spoofed_sender: 0, other: 0 };
-    try {
-      const subtypeRes = await query(`
-        SELECT COALESCE(sr.threat_subtype, 'phishing') AS subtype,
-               COUNT(DISTINCT e.gmail_message_id)       AS count
-        FROM scan_results sr
-        JOIN emails e ON sr.email_id = e.email_id
-        WHERE e.user_id        = $1
-          AND sr.threat_detected = 1
-          AND e.gmail_message_id IS NOT NULL
-        GROUP BY sr.threat_subtype
-      `, [userId]);
-      subtypeRes.rows.forEach(row => {
-        const key = row.subtype || 'phishing';
-        if (threatSubtypes.hasOwnProperty(key)) {
-          threatSubtypes[key] = parseInt(row.count);
-        } else {
-          threatSubtypes.other += parseInt(row.count);
-        }
-      });
-    } catch (_) { /* non-critical — don't break dashboard if query fails */ }
-
+    const sub = (k) => threats.filter(e => (e.threat.subType || 'phishing') === k).length;
     res.json({
       success: true,
+      period: '30 days',
+      scanError,
       stats: {
-        totalEmails: scanned.length, threatsBlocked: dangerous.length,
-        safeEmails: safe.length, suspiciousEmails: suspicious.length, dangerous: dangerous.length
+        totalEmails: all.length, dangerous: dangerous.length, suspiciousEmails: suspicious.length, safeEmails: safe.length,
+        threatsBlocked: threats.filter(e => e.blocked).length, quarantined: threats.filter(e => e.quarantined).length,
       },
-      threatSubtypes,   // ← NEW: { phishing: N, malware_link: N, spoofed_sender: N, other: N }
+      threatSubtypes: { phishing: sub('phishing'), malware_link: sub('malware_link'), spoofed_sender: sub('spoofed_sender'), other: sub('other') },
       charts: {
         trend: { labels, data: threatData, safe: safeData },
-        types: { labels: Object.keys(typeCount).slice(0, 6), data: Object.values(typeCount).slice(0, 6) }
+        types: { labels: top.map(t => t[0]), data: top.map(t => t[1]) },
       },
-      recentThreats: [...dangerous, ...suspicious].slice(0, 5).map(e => ({
-        id: e.id, from: e.from, subject: e.subject,
-        level: e.threat.level, score: e.threat.score, reasons: e.threat.reasons.slice(0, 2)
-      }))
+      recentThreats: threats.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 5).map(e => ({
+        id: e.id, from: e.from, subject: e.subject, level: e.threat.level, score: e.threat.score,
+        reasons: (e.threat.reasons || []).slice(0, 2), quarantined: e.quarantined,
+      })),
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message, scanError });
   }
+});
+
+// ── GET /api/analytics/insights — which checks fire, riskiest domains, MITRE, response ──
+router.get('/analytics/insights', requireAuth, async (req, res) => {
+  try {
+    const db = require('../database/db');
+    const { summarise } = require('../services/insights');
+    const [rows, response] = await Promise.all([db.getInsightRows(req.session.user.id), db.getResponseCounts(req.session.user.id)]);
+    res.json({ success: true, ...summarise(rows), response });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ── GET /api/senders/profile?address= — history with one sender ──
+router.get('/senders/profile', requireAuth, async (req, res) => {
+  try {
+    const profile = await require('../database/db').getSenderProfile(req.session.user.id, req.query.address);
+    if (!profile) return res.status(400).json({ success: false, error: 'address required' });
+    res.json({ success: true, profile });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 module.exports = router;

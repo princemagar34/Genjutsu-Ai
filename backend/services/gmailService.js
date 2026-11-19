@@ -9,7 +9,9 @@ function getGmailClient(accessToken) {
         process.env.GOOGLE_CLIENT_SECRET,
         process.env.GOOGLE_CALLBACK_URL
     );
-    auth.setCredentials({ access_token: accessToken });
+    // accessToken may be a string, or { access_token, refresh_token } so googleapis
+    // can renew an expired access token by itself (needed for background jobs)
+    auth.setCredentials(typeof accessToken === 'object' && accessToken ? accessToken : { access_token: accessToken });
     return google.gmail({ version: 'v1', auth });
 }
 
@@ -33,14 +35,25 @@ function parseEmail(raw) {
     const get = (name) =>
         (headers.find(h => h.name.toLowerCase() === name.toLowerCase()) || {}).value || '';
 
-    let body = '';
-    const parts = raw.payload.parts || [];
-    const textPart = parts.find(p => p.mimeType === 'text/plain');
-    if (textPart?.body?.data) {
-        body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
-    }
+    // Walk every MIME part (emails are often multipart/mixed > multipart/alternative > text/plain)
+    const decode = (data) => Buffer.from(String(data).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
+    let textBody = '', htmlBody = '';
+    (function walk(part) {
+        if (!part) return;
+        const isAttachment = part.filename && part.filename.length > 0;
+        if (!isAttachment && part.body?.data) {
+            if (part.mimeType === 'text/plain' && !textBody) textBody = decode(part.body.data);
+            else if (part.mimeType === 'text/html' && !htmlBody) htmlBody = decode(part.body.data);
+        }
+        (part.parts || []).forEach(walk);
+    })(raw.payload);
+    const { htmlToText, linksFromHtml } = require('./detection');
+    const body = textBody || htmlToText(htmlBody);
 
-    const links = [...body.matchAll(/https?:\/\/[^\s]+/g)].map(m => m[0]);
+    const links = [...new Set([
+        ...[...body.matchAll(/https?:\/\/[^\s<>")\]]+/g)].map(m => m[0]),
+        ...linksFromHtml(htmlBody)
+    ])];
 
     const replyTo   = get('reply-to') || null;
     const messageId = get('message-id') || null;
@@ -61,12 +74,15 @@ function parseEmail(raw) {
             const isAttachment = disposition.toLowerCase().includes('attachment')
                               || (part.filename && part.filename.length > 0);
             if (isAttachment || part.filename) {
-                found.push({
+                const att = {
                     filename:  part.filename || 'unnamed',
                     mimeType:  part.mimeType || 'application/octet-stream',
                     size:      part.body?.size || 0,
                     attachmentId: part.body?.attachmentId || null
-                });
+                };
+                // small files come inline: keep the bytes for the attachment check, hidden from JSON
+                if (part.body?.data) Object.defineProperty(att, '_content', { value: Buffer.from(part.body.data, 'base64url'), enumerable: false });
+                found.push(att);
             }
             // Recurse into multipart children
             if (part.parts) found.push(...extractAttachments(part.parts));
@@ -91,7 +107,12 @@ function parseEmail(raw) {
         attachments,       // ← array of { filename, mimeType, size, attachmentId }
         authResults,
         receivedSpf,
-        arcAuthResults
+        arcAuthResults,
+        html:            htmlBody,
+        listUnsubscribe: get('list-unsubscribe') || null,
+        listId:          get('list-id') || null,
+        received:        headers.filter(h => h.name.toLowerCase() === 'received').map(h => h.value),
+        xOriginatingIp:  get('x-originating-ip') || ''
     };
 }
 
@@ -178,4 +199,11 @@ async function removeFromSpam(accessToken, gmailMsgId) {
     });
 }
 
-module.exports = { fetchEmails, sendReply, getGmailClient, moveToSpam, createSpamFilter, removeFromSpam };
+// One attachment's bytes (for the attachment check)
+async function getAttachment(accessToken, messageId, attachmentId) {
+    const gmail = getGmailClient(accessToken);
+    const { data } = await gmail.users.messages.attachments.get({ userId: 'me', messageId, id: attachmentId });
+    return Buffer.from(data.data || '', 'base64url');
+}
+
+module.exports = { fetchEmails, sendReply, getGmailClient, moveToSpam, createSpamFilter, removeFromSpam, parseEmail, getAttachment };

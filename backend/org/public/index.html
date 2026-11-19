@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Genjutsu — Organization</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('gj-org-theme') || 'light'; } catch (_) {}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/admin.css">
+<style>
+  .top .brand b { font-weight: 600; letter-spacing: 0; text-transform: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .lead { margin: 0; color: var(--text2); line-height: 1.6; }
+  .search { max-width: 280px; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: var(--chip); }
+</style>
+</head>
+<body>
+
+<section id="login" hidden>
+  <div class="login-card">
+    <div class="row" style="justify-content:space-between">
+      <div class="brand"><i aria-hidden="true"></i>GENJUTSU / ORGANIZATION</div>
+      <button class="icon-btn theme-toggle" type="button" aria-label="Switch between black and white"></button>
+    </div>
+    <form id="stepPassword">
+      <h1>Sign in</h1>
+      <p>For organization admins. Genjutsu gave you this account.</p>
+      <div class="note" id="loginNote" hidden></div>
+      <div class="err" id="loginErr" hidden></div>
+      <label class="f" for="le">Email</label>
+      <input class="in" id="le" type="email" autocomplete="username" required>
+      <label class="f" for="lp">Password</label>
+      <input class="in" id="lp" type="password" autocomplete="current-password" required>
+      <button class="btn primary" type="submit" style="width:100%;justify-content:center;height:44px">Continue</button>
+    </form>
+    <form id="stepCode" hidden>
+      <h1>Enter your 6-digit code</h1>
+      <p>Open your authenticator app and type the code for Genjutsu.</p>
+      <div class="err" id="codeErr" hidden></div>
+      <label class="f" for="lc" id="lcLabel">Code</label>
+      <input class="in otp" id="lc" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required>
+      <button class="btn primary" type="submit" style="width:100%;justify-content:center;height:44px">Sign in</button>
+      <p style="margin:14px 0 0"><a href="#" id="useRecovery">Lost your phone? Use a recovery code</a> · <a href="#" id="backToPw">Start again</a></p>
+    </form>
+  </div>
+</section>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand"><i aria-hidden="true"></i><b id="orgName">Organization</b></div>
+    <nav class="tabs" id="tabs" aria-label="Pages"></nav>
+    <div class="who">
+      <button class="icon-btn theme-toggle" type="button" aria-label="Switch between black and white"></button>
+      <button class="btn sm" type="button" id="meBtn" aria-haspopup="dialog"></button>
+      <button class="btn sm" type="button" id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+  <div class="banner warn" id="roBanner" hidden><strong>Read-only mode.</strong> Nothing can be changed until you turn it off. <button class="btn sm" type="button" data-act="readonly-off">Turn off</button></div>
+  <div class="banner info" id="twoFaBanner" hidden><strong>Turn on 2-step login.</strong> A stolen password alone should never be enough to get in. <button class="btn sm" type="button" data-act="open-account">Set it up</button></div>
+  <div class="banner info" id="previewBar" hidden></div>
+  <main class="page" id="page"></main>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div>
+    <header><h3 id="modalTitle"></h3><button class="icon-btn" type="button" data-act="close-modal" aria-label="Close">✕</button></header>
+    <div class="body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="/org/preview.js" defer></script>
+<script src="/org/org.js" defer></script>
+</body>
+</html>

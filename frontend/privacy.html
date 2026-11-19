@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Genjutsu</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap">
+<script>
+  try { document.documentElement.dataset.theme = localStorage.getItem('gj-theme') || 'dark'; }
+  catch (e) { document.documentElement.dataset.theme = 'dark'; }
+</script>
+<style>
+  :root { --bg:#f7f5f0; --card:#ffffff; --ink:#14121f; --body:#3f3b4d; --muted:#5b6474; --line:#e7e2d7; --acc:#4b3bd6; }
+  [data-theme="dark"] { --bg:#0b0d12; --card:#12151c; --ink:#e8ebf2; --body:#c3c8d3; --muted:#8b93a7; --line:#222834; --acc:#a9a2ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--body); font: 16px/1.7 Inter, system-ui, sans-serif; }
+  header { border-bottom: 1px solid var(--line); }
+  .bar { max-width: 860px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { color: var(--ink); font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+  .brand svg { color: var(--acc); }
+  .bar nav a { color: var(--muted); text-decoration: none; font-size: 14px; margin-left: 18px; }
+  .bar nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+  main { max-width: 860px; margin: 0 auto; padding: 56px 24px 80px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 48px; line-height: 1.08; letter-spacing: -.02em; color: var(--ink); margin: 0; }
+  .updated { color: var(--muted); font-size: 14px; margin: 10px 0 28px; }
+  .intro { font-size: 18px; color: var(--body); background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; }
+  h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; color: var(--ink); margin: 44px 0 10px; letter-spacing: -.01em; }
+  h3 { font-size: 16px; color: var(--ink); margin: 22px 0 6px; }
+  p, li { margin: 0 0 12px; }
+  ul { padding-left: 22px; }
+  a { color: var(--acc); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink); font-weight: 600; }
+  .table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px 8px; }
+  footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  footer .bar { padding: 22px 24px; }
+  @media (max-width: 600px) { h1 { font-size: 36px; } .bar nav a { margin-left: 12px; } }
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Genjutsu</a>
+  <nav aria-label="Legal"><a href="/privacy.html" aria-current="page">Privacy</a><a href="/terms.html">Terms</a><a href="/">Sign in</a></nav>
+</div></header>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated 19 November 2026</p>
+  <div class="intro"><p style="margin:0">Genjutsu is an email security tool. To protect your inbox it has to read your email, so this page explains exactly what it reads, what it keeps, who it shares it with, and how to have it deleted. In short: we use your data only to scan your mail and run the features you turn on, we never sell it, and we never use it for advertising or to train AI models.</p></div>
+
+  <h2>1. Who we are</h2>
+  <p>Genjutsu is developed and operated by Prince Paija Magar in Kathmandu, Nepal ("we", "us"). For any privacy question or request, email <a href="mailto:princemagar338@gmail.com">princemagar338@gmail.com</a>.</p>
+
+  <h2>2. What we collect</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Information</th><th>Why we need it</th></tr>
+    <tr><td><b>Account details</b>: your name, email address and profile picture from Google or Microsoft, or your email address for other providers</td><td>To create your account and show who is signed in</td></tr>
+    <tr><td><b>Sign-in credentials</b>: access and refresh tokens from Google or Microsoft; for iCloud, Yahoo and other providers, the app password you enter</td><td>To read your mailbox on your behalf. Tokens and app passwords are encrypted (AES-256-GCM) before they are stored. We never see your Google or Microsoft password.</td></tr>
+    <tr><td><b>Email content you receive</b>: sender, recipients, subject, date, message text, links, attachment names and types, and authentication headers (SPF, DKIM, DMARC)</td><td>To check each email for phishing and other threats</td></tr>
+    <tr><td><b>Scan records</b>: for each scanned email, the sender, subject, date, up to the first 1,000 characters of its text, its authentication results, its threat score, level and reasons, and the IP address of the server that sent it with that address's country (looked up on our own server, without sending it anywhere)</td><td>To show your history, alerts, charts and PDF reports, and to remember emails you have reviewed</td></tr>
+    <tr><td><b>Honeypot conversations</b>: the scam emails you choose to engage and the replies sent for you, with their dates and thread details</td><td>To run honeypot mode and show you the conversation</td></tr>
+    <tr><td><b>Settings and actions</b>: your preferences, trusted senders, rules, emails you block, quarantine or restore, threat levels you change, and an activity log of these actions</td><td>To apply your choices and show you what happened on your account</td></tr>
+    <tr><td><b>Alert destinations</b>: a Discord webhook address, if you connect one (stored encrypted)</td><td>To send you alerts where you asked for them</td></tr>
+    <tr><td><b>Organizations (schools and companies)</b>: if you sign in with your school's or company's email, open its invite link, or its admin added your email address, you join that organization. An organization keeps the list of addresses it added until it removes them. Its admins can see your account email, when you last signed in and scanned, and the threats sent to you (sender, subject and why it was flagged). They cannot read your other emails. You can leave in Settings</td><td>So an organization's IT team can protect its staff</td></tr>
+    <tr><td><b>Attachment checks</b>: attachments up to 10 MB are downloaded into memory, checked for hidden programs, macros, scripts, password forms, links and QR codes, and then discarded. We keep only the result and the file's fingerprint (SHA-256), so the same file is not downloaded twice</td><td>To catch dangerous files and scam links hidden in QR codes and documents</td></tr>
+    <tr><td><b>Shared threat feed</b>: domains and sender addresses of dangerous emails that reached two or more Genjutsu users (never email contents, and never addresses of people writing from their own normal accounts unless they sent dangerous emails to several users)</td><td>So an attack seen by some users protects all users</td></tr>
+    <tr><td><b>Training examples</b>: the subject and first part of the text of clear scam emails, of messages scammers send in honeypot conversations, and of some clearly safe emails (such as verified newsletters), with email addresses, links, account numbers, wallet addresses and phone numbers removed first</td><td>To keep teaching Genjutsu's detection model what scams look like, so it gets better for everyone. Your name is removed too. If you delete your account, these examples are kept without any link to you, so the model can keep learning</td></tr>
+    <tr><td><b>API keys</b>: the name you give a key, when it was created and last used. We keep only a one-way fingerprint of the key itself, never the key</td><td>To let your own tools check emails and read your threats</td></tr>
+    <tr><td><b>Technical data</b>: a session cookie and basic server logs</td><td>To keep you signed in and to keep the service secure and working</td></tr>
+  </table></div>
+  <p>Genjutsu does not use advertising, analytics or tracking cookies.</p>
+
+  <h2>3. How we use it</h2>
+  <ul>
+    <li>Scan your incoming email and label it Safe, Worth a look or Dangerous.</li>
+    <li>Move an email to spam or junk, or create a filter, <b>only</b> when you block it, turn on "Quarantine dangerous emails", or create a quarantine rule. You can restore any of them from the Blocked tab.</li>
+    <li>Send a weekly security digest to your own inbox, <b>only</b> if you turn it on.</li>
+    <li>Forward a phishing email to the Anti-Phishing Working Group <b>only</b> when you press "Report phishing".</li>
+    <li>Send replies from your account <b>only</b> in honeypot mode, and only to scam emails you choose to engage. Genjutsu never replies to no-reply addresses.</li>
+    <li>Write an AI summary of an email <b>only</b> when you press "Generate AI Summary".</li>
+    <li>Show your dashboard, history and reports, and send the alerts you have switched on.</li>
+    <li>Keep the service secure, investigate abuse, and fix problems.</li>
+  </ul>
+  <p>We do not sell your data, use it for advertising, or use it to train machine-learning or AI models.</p>
+
+  <h2>4. Who we share it with</h2>
+  <p>We share data only with the service providers below, and only what each needs to do its job for you:</p>
+  <ul>
+    <li><b>Google (Gmail API)</b> and <b>Microsoft (Microsoft Graph)</b>: to read, label and send mail in your mailbox, depending on which one you sign in with.</li>
+    <li><b>Your email provider's mail servers</b> (for example iCloud or Yahoo): to read and send mail when you sign in with an app password.</li>
+    <li><b>Google Safe Browsing</b>: links found in your emails are checked against Google's list of unsafe sites.</li>
+    <li><b>Domain registration lookups (RDAP)</b>: the domain names of senders and links (not the email itself) are looked up in public registration records to see how new they are.</li>
+    <li><b>Anti-Phishing Working Group (APWG)</b>: only when you press "Report phishing", the original email is forwarded from your account to reportphishing@apwg.org.</li>
+    <li><b>Discord</b>: only if you connect a webhook, the subject, sender, score and main reason of flagged emails are sent to your Discord channel.</li>
+    <li><b>AI providers (Groq, and Anthropic if enabled)</b>: when you request an AI summary or use honeypot mode, the relevant email text is sent to generate the summary or reply.</li>
+    <li><b>Hosting providers</b>: our database is hosted by Neon, and the app runs on cloud hosting (Google Cloud and Cloudflare).</li>
+    <li><b>Telegram</b>: if the operator has enabled Telegram alerts, the subject, sender and threat score of flagged emails may be sent as an alert to the operator's Telegram chat.</li>
+  </ul>
+  <p>We may also disclose information if the law requires it, or to protect the rights and safety of users and the service.</p>
+
+  <h2>5. Google user data</h2>
+  <p>Genjutsu's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements. In particular, Gmail data is used only to provide and improve the user-facing features described above, is not used for advertising, is not sold, is not used to train AI or machine-learning models, and is not read by people except with your permission, for security purposes, to comply with the law, or where it has been made anonymous.</p>
+
+  <h2>6. Who can see your data</h2>
+  <p>Genjutsu administrators can see scan records (sender, subject, threat level and reasons), your account settings, rules and trusted senders, and whether your mailbox connection is working, so they can review false alarms, block scam domains for everyone and help when scanning breaks. They can also see details scammers sent in honeypot conversations, such as bank accounts or wallets, so these can be reported. They cannot see your password or your email tokens. Administrators sign in with a password and a code from their phone, and every administrator action is recorded in an activity log.</p>
+
+  <h2>7. How long we keep it</h2>
+  <ul>
+    <li>Account details, scan records, honeypot conversations and settings are kept while your account exists.</li>
+    <li>Sign-in sessions expire after 7 days.</li>
+    <li><b>Demo mode</b> uses made-up sample emails. Nothing is sent, no mailbox is connected, and the demo account and its records are deleted within a day.</li>
+    <li>When you ask us to delete your account, we delete these records within 30 days, unless the law requires us to keep something longer.</li>
+  </ul>
+
+  <h2>8. Your choices and rights</h2>
+  <ul>
+    <li><b>Access or correct</b> your data, or <b>get a copy</b> of it: email us.</li>
+    <li><b>Delete</b> your account and data: use <b>Settings → Delete account</b>, which deletes everything immediately and revokes Google access, or email <a href="mailto:princemagar338@gmail.com">princemagar338@gmail.com</a> from the address you signed in with.</li>
+    <li><b>Withdraw access</b> at any time: remove Genjutsu from your <a href="https://myaccount.google.com/permissions" rel="noopener">Google account permissions</a> or your <a href="https://account.live.com/consent/Manage" rel="noopener">Microsoft account permissions</a>, or revoke the app password you created.</li>
+    <li>Turn off honeypot mode, quarantine, the weekly digest and alerts in Settings, and remove trusted senders, rules or your Discord connection at any time.</li>
+    <li><b>Export</b> your threats and account activity at any time from <b>Settings → Export to a SIEM</b>. Files you download are yours to handle; we are not responsible for where you send them.</li>
+    <li><b>Revoke</b> any API key in Settings; it stops working immediately.</li>
+  </ul>
+
+  <h2>9. Security</h2>
+  <p>Connections are encrypted with HTTPS, sign-in tokens, app passwords and webhook addresses are encrypted at rest, requests are rate-limited, and access to the database is restricted. No system is completely secure, so if we ever discover a breach that affects your data we will tell you without undue delay.</p>
+
+  <h2>10. Children</h2>
+  <p>Genjutsu is not intended for children under 13, and we do not knowingly collect their data. Organizations using Genjutsu are responsible for using it only with staff or student accounts they are allowed to protect.</p>
+
+  <h2>11. Changes</h2>
+  <p>If we change this policy we will update the date above, and for significant changes we will tell you in the app before they take effect.</p>
+
+</main>
+<footer><div class="bar"><span>Genjutsu · Kathmandu, Nepal</span><span><a href="mailto:princemagar338@gmail.com">princemagar338@gmail.com</a></span></div></footer>
+</body>
+</html>

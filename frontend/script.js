@@ -3,7 +3,12 @@
 // ============================================================
 
 // ── Backend API base URL ──────────────────────────────────────
-const API_BASE = ''; // proxied through genjutsu.org via Cloudflare Worker
+// Production: '' — genjutsu.org's Cloudflare Worker proxies /auth and /api to the backend.
+// Local dev: if this page is served by something else on localhost (e.g. VS Code
+// Live Server on :5500), talk to the backend on :3001 directly.
+const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port !== '3001')
+    ? 'http://localhost:3001'
+    : '';
 
 // ── Session ID management (cross-domain cookie workaround) ────
 function getSessionId() { return localStorage.getItem('genjutsu_sid') || ''; }
@@ -33,6 +38,7 @@ function formatDate(dateStr, includeDate = true) {
 // ── Chart instances (so we can update them later) ────────────
 let threatLineChart = null;
 let threatPieChart  = null;
+let checksChart = null, domainsChart = null;
 
 // ── Current loaded emails cache ──────────────────────────────
 let cachedEmails = [];
@@ -75,11 +81,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Capture session ID from URL after OAuth redirect
     const urlParams = new URLSearchParams(window.location.search);
     const sid = urlParams.get('sid');
+    // Invite link (/?join=CODE): remember it through sign-in, then join after the app loads
+    const join = urlParams.get('join');
+    if (join && /^[A-Za-z0-9_-]{8,64}$/.test(join)) {
+        try { localStorage.setItem('gj-join', join); } catch (_) {}
+        window.history.replaceState({}, document.title, '/' + location.hash);
+    }
     if (sid) {
         setSessionId(sid);
         // Clean URL but keep hash so page is restored after OAuth redirect
         window.history.replaceState({}, document.title, '/' + location.hash);
     }
+    initLoginOptions();
     await checkAuthAndInit();
 });
 
@@ -99,8 +112,12 @@ async function checkAuthAndInit() {
         // Populate user info in sidebar
         document.getElementById('userName').textContent  = data.user.name;
         document.getElementById('userEmail').textContent = data.user.email;
-        document.getElementById('gmailConnectedEmail').textContent =
-            `Connected: ${data.user.email}`;
+        window.genjutsuProvider = data.user.provider || 'google';
+        document.getElementById('gmailConnectedEmail').textContent = data.user.email;
+        const inboxLine = document.getElementById('inboxAccountLine');
+        if (inboxLine) inboxLine.textContent = `${data.user.email} · ${data.user.providerLabel || 'Gmail'}`;
+        const providerLabelEl = document.getElementById('accountProviderLabel');
+        if (providerLabelEl) providerLabelEl.textContent = `${data.user.providerLabel || 'Gmail'} · connected`;
 
         // Set avatar — use Google profile pic if available, else initials
         const avatarEl = document.getElementById('userAvatar');
@@ -126,6 +143,12 @@ async function checkAuthAndInit() {
         initSettings();
         initEmailModal();
         initButtons();
+        const demoBanner = document.getElementById('demoBanner');
+        if (demoBanner) demoBanner.hidden = !data.user.demo;
+        window.genjutsuDemo = !!data.user.demo;
+        setTimeout(() => startTour(false), 600);
+        loadAnnouncements();
+        joinPendingOrg().then(loadOrg);
 
         // Load real data
         await loadDashboard();
@@ -146,6 +169,130 @@ async function checkAuthAndInit() {
 function showLoginScreen() {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('mainApp').style.display     = 'none';
+}
+
+// ── Login options: Google button + provider bubbles (Outlook, iCloud, Yahoo, More) ──
+const IMAP_PROVIDER_INFO = {
+    icloud: { title: 'Sign in to iCloud Mail', placeholder: 'you@icloud.com' },
+    yahoo:  { title: 'Sign in to Yahoo Mail',  placeholder: 'you@yahoo.com' },
+    more:   { title: 'Sign in to another mailbox', placeholder: 'you@example.com' }
+};
+
+function initLoginOptions() {
+    const demoBtn = document.getElementById('demoLogin');
+    if (demoBtn) demoBtn.addEventListener('click', async () => {
+        demoBtn.disabled = true;
+        demoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening the demo…';
+        try {
+            const r = await apiFetch(`${API_BASE}/auth/demo`, { method: 'POST' });
+            const j = await r.json();
+            if (!j.success) throw new Error(j.error || 'Could not start the demo');
+            setSessionId(j.sessionId);
+            window.location.reload();
+        } catch (e) {
+            demoBtn.disabled = false;
+            demoBtn.innerHTML = '<i class="fas fa-flask"></i> Try a demo with sample emails <span>no sign-in</span>';
+            alertLoginError(e.message);
+        }
+    });
+    // OAuth links must reach the backend even when the page is served elsewhere (local dev)
+    document.querySelectorAll('[data-auth-path]').forEach(a => {
+        a.href = `${API_BASE}${a.getAttribute('data-auth-path')}`;
+    });
+
+    const form = document.getElementById('imapLoginForm');
+    if (!form) return;
+    const select    = document.getElementById('imapProvider');
+    const selectRow = document.getElementById('imapProviderField');
+    const titleEl   = document.getElementById('imapTitle');
+    const emailEl   = document.getElementById('imapEmail');
+    const helpEl    = document.getElementById('imapHelp');
+    const custom    = document.getElementById('imapCustomFields');
+    const errorEl   = document.getElementById('imapError');
+    const submit    = document.getElementById('imapSubmit');
+    const bubbles   = document.querySelectorAll('[data-imap-provider]');
+    let   helpText  = {};
+
+    const showError = (msg) => {
+        errorEl.textContent = msg || '';
+        errorEl.classList.toggle('visible', Boolean(msg));
+    };
+    const refreshHelp = () => {
+        const isCustom = select.value === 'custom';
+        custom.style.display = isCustom ? 'grid' : 'none';
+        helpEl.textContent = isCustom
+            ? 'Enter the IMAP (incoming) and SMTP (outgoing) servers from your email provider.'
+            : (helpText[select.value] ? `Create an app password: ${helpText[select.value]}.` : 'Use an app password from your email provider\'s security settings.');
+    };
+    const closeForm = () => {
+        form.style.display = 'none';
+        bubbles.forEach(b => b.classList.remove('active'));
+        showError('');
+    };
+
+    bubbles.forEach(bubble => bubble.addEventListener('click', () => {
+        const choice = bubble.getAttribute('data-imap-provider');
+        if (bubble.classList.contains('active')) { closeForm(); return; }
+        bubbles.forEach(b => b.classList.toggle('active', b === bubble));
+        const info = IMAP_PROVIDER_INFO[choice];
+        titleEl.textContent = info.title;
+        emailEl.placeholder = info.placeholder;
+        if (choice === 'more') {
+            selectRow.style.display = 'block';
+            if (['icloud', 'yahoo'].includes(select.value)) select.value = 'aol';
+        } else {
+            selectRow.style.display = 'none';
+            select.value = choice;
+        }
+        showError('');
+        refreshHelp();
+        form.style.display = 'block';
+        emailEl.focus();
+    }));
+    document.getElementById('imapClose').addEventListener('click', closeForm);
+    select.addEventListener('change', refreshHelp);
+
+    // Server-side list carries the app-password instructions for each provider
+    fetch(`${API_BASE}/auth/imap/providers`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => { (d.providers || []).forEach(p => { helpText[p.id] = p.help; }); refreshHelp(); })
+        .catch(refreshHelp);
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showError('');
+        const body = {
+            provider: select.value,
+            email:    emailEl.value.trim(),
+            password: document.getElementById('imapPassword').value
+        };
+        if (!body.email || !body.password) return showError('Enter your email address and app password.');
+        if (body.provider === 'custom') {
+            body.imapHost = document.getElementById('imapHost').value.trim();
+            body.imapPort = document.getElementById('imapPort').value;
+            body.smtpHost = document.getElementById('smtpHost').value.trim();
+            body.smtpPort = document.getElementById('smtpPort').value;
+        }
+        submit.disabled = true;
+        submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting to your mailbox...';
+        try {
+            const res  = await fetch(`${API_BASE}/auth/imap`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Sign-in failed');
+            setSessionId(data.sid);
+            document.getElementById('imapPassword').value = '';
+            window.location.reload();
+        } catch (err) {
+            showError(err.message === 'Failed to fetch' ? 'Cannot reach the Genjutsu server. Is the backend running?' : err.message);
+        } finally {
+            submit.disabled = false;
+            submit.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in';
+        }
+    });
 }
 
 async function logout() {
@@ -180,6 +327,7 @@ function initNavigation() {
 
         // Persist in URL hash so refresh restores same page
         if (updateHash) history.replaceState(null, '', '#' + pageName);
+        if (pageName === 'settings') { loadSafeSenders(); loadRules(); loadActivity(); loadDiscordStatus(); loadApiKeys(); }
     }
 
     // ── Restore page from hash on load ────────────────────────
@@ -188,25 +336,46 @@ function initNavigation() {
         switchPage(hash, false);
     }
 
+    // ── Floating nav bubble: the page links live in a card that opens from the bubble ──
+    const navOverlay = document.getElementById('sidebarOverlay');
+    function setNavOpen(open, returnFocus = false) {
+        sidebar.classList.toggle('active', open);
+        if (navOverlay) navOverlay.classList.toggle('active', open);
+        if (menuToggle) {
+            menuToggle.setAttribute('aria-expanded', String(open));
+            menuToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+            const icon = menuToggle.querySelector('i');
+            if (icon) icon.className = open ? 'fas fa-times' : 'fas fa-bars';
+            if (!open && returnFocus) menuToggle.focus();
+        }
+        if (open) (sidebar.querySelector('.nav-item.active') || sidebar.querySelector('.nav-item'))?.focus();
+    }
+    const navIsOpen = () => sidebar.classList.contains('active');
+
     navItems.forEach(item => {
         item.addEventListener('click', function (e) {
             e.preventDefault();
             const pageName = this.dataset.page;
             switchPage(pageName);
-            if (window.innerWidth <= 768) sidebar.classList.remove('active');
+            setNavOpen(false);
         });
     });
 
     if (menuToggle) {
-        menuToggle.addEventListener('click', () => sidebar.classList.toggle('active'));
+        menuToggle.addEventListener('click', e => {
+            e.stopPropagation();
+            setNavOpen(!navIsOpen());
+        });
     }
 
     document.addEventListener('click', e => {
-        if (window.innerWidth <= 768 &&
-            !sidebar.contains(e.target) &&
-            !menuToggle.contains(e.target)) {
-            sidebar.classList.remove('active');
+        if (navIsOpen() && !sidebar.contains(e.target) && !(menuToggle && menuToggle.contains(e.target))) {
+            setNavOpen(false);
         }
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && navIsOpen()) setNavOpen(false, true);
     });
 
     // "View All" threats link
@@ -259,15 +428,64 @@ function showToast(title, message, type = 'danger') {
 // ============================================================
 // DASHBOARD — load real data from backend
 // ============================================================
+// ── Insights: which checks fire most, riskiest domains, response counts ──
+async function loadInsights() {
+    try {
+        const data = await (await apiFetch(`${API_BASE}/api/analytics/insights`)).json();
+        if (!data.success) return;
+        const r = data.response || {};
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('insQuarantined', r.quarantined || 0); set('insBlocked', r.blocked || 0);
+        set('insReported', r.reported || 0); set('insHoneypot', `${r.honeypotMinutes || 0} min`);
+        const c = themeColors();
+        const bar = (canvasId, rows, color, existing) => {
+            const el = document.getElementById(canvasId); if (!el) return existing;
+            if (existing) existing.destroy();
+            if (!rows.length) { el.getContext('2d').clearRect(0, 0, el.width, el.height); return null; }
+            return new Chart(el, {
+                type: 'bar',
+                data: { labels: rows.map(x => x.label), datasets: [{ data: rows.map(x => x.count), backgroundColor: color, borderRadius: 6, maxBarThickness: 22 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0, color: c.muted }, grid: { color: c.grid } },
+                              y: { ticks: { color: c.text }, grid: { display: false } } } }
+            });
+        };
+        checksChart  = bar('checksChart',  data.checks  || [], '#8b8cff', checksChart);
+        domainsChart = bar('domainsChart', data.domains || [], '#ffb547', domainsChart);
+    } catch (_) {}
+}
+
+// ── Sender profile (shown in the reader and in Investigate) ──
+async function senderProfileHtml(from) {
+    const addr = ((String(from || '').match(/<([^>]+)>/) || [])[1] || String(from || '')).trim();
+    if (!addr.includes('@')) return '';
+    try {
+        const p = (await (await apiFetch(`${API_BASE}/api/senders/profile?address=${encodeURIComponent(addr)}`)).json()).profile;
+        if (!p) return '';
+        const earlier = Math.max(0, p.total - 1);
+        const line = earlier === 0
+            ? '<b>First email from this sender.</b> Be extra careful with unexpected requests.'
+            : `<b>${earlier} earlier email${earlier === 1 ? '' : 's'}</b> from this sender since ${formatDate(p.firstSeen, true).split(',')[0]} · ${p.flagged} flagged · average score ${p.avgScore}/100`;
+        return `<div class="sender-profile ${earlier === 0 ? 'new' : ''}"><i class="fas fa-user-clock" aria-hidden="true"></i><span>${line}${p.trusted ? ' · <b class="ok-text">Trusted sender</b>' : ''}</span></div>`;
+    } catch (_) { return ''; }
+}
+async function attachSenderProfile(from) {
+    const html = await senderProfileHtml(from);
+    const host = document.querySelector('#modalBody .reader-head, #modalBody .modal-email-meta');
+    if (html && host && !document.querySelector('#modalBody .sender-profile')) host.insertAdjacentHTML('afterend', html);
+}
+
 async function loadDashboard() {
     try {
+        loadInsights();
         const res  = await apiFetch(`${API_BASE}/api/analytics/dashboard?days=7`);
         const data = await res.json();
         if (!data.success) return;
 
         // Stat cards
         animateNumber(document.getElementById('statTotal'),   data.stats.totalEmails);
-        animateNumber(document.getElementById('statThreats'), data.stats.dangerous || 0);
+        animateNumber(document.getElementById('statThreats'), (data.stats.dangerous || 0) + (data.stats.suspiciousEmails || 0));
         animateNumber(document.getElementById('statSafe'),    data.stats.safeEmails);
 
         const pct = data.stats.totalEmails > 0
@@ -275,7 +493,11 @@ async function loadDashboard() {
             : 0;
         document.getElementById('statSafeChange').textContent   = `${pct}% safe rate`;
         document.getElementById('statThreatsChange').textContent =
-            `${data.stats.dangerous || 0} high risk detected · ${data.stats.suspiciousEmails || 0} suspicious`;
+            `${data.stats.dangerous || 0} dangerous · ${data.stats.suspiciousEmails || 0} suspicious` +
+            (data.stats.quarantined ? ` · ${data.stats.quarantined} moved to spam` : '');
+        const totalSub = document.getElementById('statTotalChange');
+        if (totalSub) totalSub.textContent = `checked in the last ${data.period || '30 days'}`;
+        if (data.scanError) showToast('Could not reach your mailbox', 'Showing the emails already checked. ' + data.scanError, 'warning');
 
         // Refresh both notification badges (threats + remarks)
         loadNotifications();
@@ -356,11 +578,11 @@ function renderLineChart(trend) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 12 } } } },
+            plugins: { legend: { labels: { color: themeColors().text, font: { size: 12 } } } },
             scales: {
                 y: { beginAtZero: true,
-                    grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                    grid: { color: themeColors().grid }, ticks: { color: themeColors().muted } },
+                x: { grid: { color: themeColors().grid }, ticks: { color: themeColors().muted } }
             }
         }
     });
@@ -392,7 +614,7 @@ function renderPieChart(types) {
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#cbd5e1', font: { size: 12 }, padding: 15 }
+                    labels: { color: themeColors().text, font: { size: 12 }, padding: 15 }
                 }
             }
         }
@@ -402,7 +624,7 @@ function renderPieChart(types) {
 // ============================================================
 // EMAILS — load and render from backend
 // ============================================================
-async function loadEmails(filter = 'all') {
+async function loadEmails(filter = 'all', isRetry = false) {
     const list = document.getElementById('emailList');
     const countEl = document.getElementById('emailCountInfo');
     list.innerHTML = `<div class="loading-state">
@@ -429,12 +651,12 @@ async function loadEmails(filter = 'all') {
                             <div style="font-weight:500;margin-bottom:2px;">${escHtml(b.subject || '(No Subject)')}</div>
                             <div style="font-size:13px;color:var(--text-muted);">From: ${escHtml(b.sender_email || '')}</div>
                             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-                                Blocked ${new Date(b.blocked_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
-                                &bull; Moved to Gmail spam
+                                ${b.reason === 'auto' ? 'Quarantined automatically' : 'Blocked'} ${new Date(b.blocked_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+                                &bull; Moved to spam/junk
                             </div>
                         </div>
                         <button onclick="unblockEmail('${escHtml(rawId)}')"
-                            style="padding:6px 14px;background:transparent;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+                            style="padding:6px 14px;background:transparent;border:1px solid var(--border-color);border-radius:6px;color:var(--text-muted);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
                             <i class="fas fa-unlock" style="margin-right:4px;"></i>Unblock
                         </button>
                     </div>
@@ -462,6 +684,10 @@ async function loadEmails(filter = 'all') {
         // FIX: populate safe lookup map
         cachedEmails.forEach(e => { emailDataMap[e.id] = e; });
         countEl.textContent = `${cachedEmails.length} emails loaded`;
+        if (data.quarantined && data.quarantined.length) {
+            const n = data.quarantined.length;
+            showToast('Quarantined', `${n} dangerous email${n === 1 ? ' was' : 's were'} moved to spam. Open Blocked to undo.`, 'warning');
+        }
 
         // New mail detection
         const newEmails = cachedEmails.filter(e => !knownEmailIds.has(e.id));
@@ -482,10 +708,39 @@ async function loadEmails(filter = 'all') {
 
     } catch (err) {
         console.error('Email load error:', err);
+        if (!isRetry) {
+            // The database may just be waking up: try once more before showing an error
+            list.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Still connecting… trying again</p></div>`;
+            await new Promise(r => setTimeout(r, 2500));
+            return loadEmails(filter, true);
+        }
         list.innerHTML = `<div class="empty-state error">
             <i class="fas fa-exclamation-circle"></i>
             <p>Could not load emails. <a onclick="loadEmails('all')" href="#">Retry</a></p></div>`;
     }
+}
+
+function plainReason(r) {
+    const s = String(r || '');
+    if (/^display-name spoofing/i.test(s))                return 'Pretends to be a brand';
+    if (/^look-alike/i.test(s))                           return 'Fake look-alike address';
+    if (/^reply-to mismatch/i.test(s))                    return 'Replies go somewhere else';
+    if (/^hidden link/i.test(s))                          return 'Hidden link';
+    if (/^payment-fraud/i.test(s))                        return 'Payment fraud wording';
+    if (/^payment request/i.test(s))                      return 'Asks for payment';
+    if (/^new domain/i.test(s))                           return 'Brand-new website';
+    if (/^young domain/i.test(s))                         return 'Recently created website';
+    if (/^verified newsletter/i.test(s))                  return 'Newsletter';
+    if (/marked this sender as safe/i.test(s))            return 'Trusted sender';
+    if (/^known sender/i.test(s))                         return 'Known sender';
+    if (/safe ?browsing|malicious url|blacklist/i.test(s)) return 'Known bad link';
+    if (/link|url/i.test(s))                              return 'Lots of links';
+    if (/urgen|tone|pressure/i.test(s))                   return 'Pushy wording';
+    if (/spf|dkim|dmarc|auth|spoof|sender/i.test(s))      return 'Sender not verified';
+    if (/attach|file/i.test(s))                           return 'Risky attachment';
+    if (/bayes|classifier|ml\b|model/i.test(s))           return 'Looks like phishing';
+    if (/keyword|phish/i.test(s))                         return 'Phishing words';
+    return s;
 }
 
 function renderEmailList(emails) {
@@ -504,132 +759,33 @@ function renderEmailList(emails) {
         const overrideLevel = t.overrideLevel || email.overrideLevel || '';
         const overrideBadge = ''; // removed from list view — visible in modal/threats page
 
-        // ── Scan data ─────────────────────────────────────────────
-        const authRaw = t.authDetails?.raw || '';
+        // Friendly wording for the row (the full technical reasons stay in the detail modal)
+        const word   = (level === 'safe' && t.category === 'newsletter') ? 'Newsletter' : ({ dangerous: 'Dangerous', suspicious: 'Worth a look', safe: 'Safe' }[level] || 'Safe');
+        const rawWhy = (t.reasons && t.reasons[0]) ? String(t.reasons[0]).split(':')[0] : '';
+        const plainWhy = level === 'safe' ? 'Nothing unusual' : plainReason(rawWhy);
+        const fromName = String(email.from || '').replace(/<.*>/, '').replace(/"/g, '').trim() || String(email.from || '');
+        const initial  = (fromName.match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
 
-        // SPF / DKIM / DMARC
-        const spf   = (authRaw.match(/spf=(pass|fail|softfail|neutral|none|permerror)/i)  ||[])[1]||'none';
-        const dkim  = (authRaw.match(/dkim=(pass|fail|neutral|none|permerror)/i)           ||[])[1]||'none';
-        const dmarc = (authRaw.match(/dmarc=(pass|fail|none)/i)                            ||[])[1]||'none';
-        function chip(label, val) {
-            const v = (val||'none').toLowerCase();
-            const c = v==='pass'?'#10b981':(v==='fail'||v==='permerror')?'#ef4444':v==='softfail'?'#f59e0b':'#64748b';
-            const i = v==='pass'?'✅':(v==='fail'||v==='permerror')?'❌':v==='softfail'?'⚠️':'➖';
-            return `<span class="si-chip" style="border-color:${c};color:${c}">${i} ${label}: ${v.toUpperCase()}</span>`;
-        }
-
-        // URL scan
-        const links   = email.links || [];
-        const SUSP    = [/paypa1\.com/i,/g00gle\.com/i,/amaz0n\.com/i,/micros0ft\.com/i,
-                         /secure-login\./i,/account-verify\./i,/login-confirm\./i,/verify-account\./i];
-        const IP_PAT  = /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/;
-        const badUrls = links.filter(u => SUSP.some(p=>p.test(u)) || IP_PAT.test(u));
-        const urlColor = badUrls.length>0?'#ef4444':links.length>0?'#10b981':'#64748b';
-        const urlText  = badUrls.length>0?`${badUrls.length} suspicious / ${links.length} total`
-                       : links.length>0?`${links.length} scanned — clean`:'No links';
-
-        // Attachment scan
-        const atts     = email.attachments || [];
-        const attDets  = t.attachmentDetails || [];
-        const DANG     = new Set(['exe','bat','cmd','com','msi','ps1','vbs','js','jse','scr',
-                                  'pif','hta','jar','lnk','url','zip','rar','7z','iso',
-                                  'doc','docm','xls','xlsm','ppt','pptm']);
-        const SUSP_EXT = new Set(['pdf','docx','xlsx','pptx','rtf']);
-        const DBLEXT   = /\.\w{2,4}\.(exe|bat|cmd|scr|vbs|js|pif|com)$/i;
-        let attSummaryColor = '#64748b', attSummaryIcon = '➖', attSummaryText = 'No attachments';
-        let attChips = '';
-        if (atts.length > 0) {
-            const dangerCount = atts.filter(a => {
-                const e = (a.filename||'').split('.').pop().toLowerCase();
-                return DANG.has(e) || DBLEXT.test(a.filename||'');
-            }).length;
-            attSummaryColor = dangerCount>0?'#ef4444':'#10b981';
-            attSummaryIcon  = dangerCount>0?'❌':'✅';
-            attSummaryText  = `${atts.length} file${atts.length!==1?'s':''} — ${dangerCount>0?`${dangerCount} dangerous`:'all safe'}`;
-            attChips = atts.map(att => {
-                const name = att.filename||'unnamed';
-                const ext  = name.split('.').pop().toLowerCase();
-                const det  = attDets.find(d=>d.filename===name);
-                const risk = det?.risk||(DBLEXT.test(name)?'dangerous':DANG.has(ext)?'dangerous':SUSP_EXT.has(ext)?'suspicious':'clean');
-                const c    = risk==='dangerous'?'#ef4444':risk==='suspicious'?'#f59e0b':'#10b981';
-                const ic   = risk==='dangerous'?'❌':risk==='suspicious'?'⚠️':'✅';
-                return `<span class="si-chip" style="border-color:${c};color:${c}">${ic} ${escHtml(name.substring(0,20))}${name.length>20?'…':''}</span>`;
-            }).join('');
-        }
-
-        // ── Full detail panel (hidden until toggle clicked) ───────
-        const scanPanel = `
-        <div class="scan-inline-panel" id="scan-panel-${email.id}" style="display:none">
-            <div class="si-row">
-                <span class="si-label">🔐 SPF / DKIM / DMARC</span>
-                <div class="si-chips">
-                    ${chip('SPF',spf)}${chip('DKIM',dkim)}${chip('DMARC',dmarc)}
-                    ${!authRaw?'<span class="si-note">No auth headers — heuristic used</span>':''}
-                </div>
-            </div>
-            <div class="si-row">
-                <span class="si-label">🔗 URL Scanner</span>
-                <div class="si-chips">
-                    <span class="si-chip" style="border-color:${urlColor};color:${urlColor}">${links.length>0?'✅':'➖'} ${urlText}</span>
-                    ${badUrls.slice(0,3).map(u=>`<span class="si-chip" style="border-color:#ef4444;color:#ef4444" title="${escHtml(u)}">⚠️ ${escHtml(u.replace(/https?:\/\//,'').substring(0,28))}…</span>`).join('')}
-                </div>
-            </div>
-            <div class="si-row">
-                <span class="si-label">📎 Attachments</span>
-                <div class="si-chips">
-                    <span class="si-chip" style="border-color:${attSummaryColor};color:${attSummaryColor}">${attSummaryIcon} ${attSummaryText}</span>
-                    ${attChips}
-                </div>
-            </div>
-        </div>`;
-
-        // ── Status bar (always visible, shows 3 coloured dots) ────
-        const spfDot = spf==='pass'?'#10b981':(spf==='fail'||spf==='permerror')?'#ef4444':spf==='softfail'?'#f59e0b':'#64748b';
-        const statusBar = `
-        <button class="btn-scan-toggle" id="scan-btn-${email.id}"
-            onclick="toggleScanPanel('${email.id}')" title="Show scan results">
-            <span class="scan-status-row">
-                <span class="scan-status-item" style="color:${spfDot}">
-                    <span class="scan-dot" style="background:${spfDot}"></span>
-                    <span class="scan-status-text">SPF/DKIM/DMARC</span>
-                </span>
-                <span class="scan-status-sep">·</span>
-                <span class="scan-status-item" style="color:${urlColor}">
-                    <span class="scan-dot" style="background:${urlColor}"></span>
-                    <span class="scan-status-text">URL${links.length>0?` (${links.length})`:'s'}</span>
-                </span>
-                <span class="scan-status-sep">·</span>
-                <span class="scan-status-item" style="color:${attSummaryColor}">
-                    <span class="scan-dot" style="background:${attSummaryColor}"></span>
-                    <span class="scan-status-text">Files${atts.length>0?` (${atts.length})`:''}</span>
-                </span>
-                <span class="scan-toggle-arrow" id="scan-arrow-${email.id}">▾</span>
-            </span>
-        </button>`;
-
+        const fromAddr = (String(email.from || '').match(/<([^>]+)>/) || [])[1] || '';
         return `<div class="email-item ${level}" data-id="${email.id}">
-            <input type="checkbox" class="email-checkbox">
-            <div class="email-status"><i class="fas ${icon}"></i></div>
-            <div class="email-content">
-                <div class="email-header">
-                    <h4>${escHtml(email.subject)}</h4>
-                    <span class="email-time">${date}</span>
-                </div>
-                <p class="email-sender">From: ${escHtml(email.from)}</p>
-                <p class="email-preview">${escHtml(email.snippet)}</p>
-                ${tags || overrideBadge ? `<div class="threat-tags">${tags}${overrideBadge}</div>` : ''}
-                ${statusBar}
-                ${scanPanel}
-            </div>
-            <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
-                <button class="btn-icon ${level === 'dangerous' ? 'danger' : ''}"
-                    onclick="openEmailModal('${email.id}')" title="View Details">
-                    <i class="fas ${level === 'dangerous' ? 'fa-shield-alt' : 'fa-eye'}"></i>
-                </button>
-                <button class="btn-icon" title="Change threat level"
-                    onclick="openUserOverrideModal('${email.id}')"
-                    style="font-size:10px;padding:4px 6px;background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.2);border-radius:6px;cursor:pointer;white-space:nowrap">
-                    <i class="fas fa-edit" style="font-size:9px"></i>
+            <input type="checkbox" class="email-checkbox" aria-label="Select email from ${escHtml(fromName)}">
+            <button type="button" class="email-open" onclick="openEmailReader('${email.id}')" title="${escHtml(fromAddr || fromName)}">
+                <span class="email-avatar" aria-hidden="true">${escHtml(initial)}</span>
+                <span class="email-main">
+                    <span class="email-line1">
+                        <span class="email-from-name">${escHtml(fromName)}</span>
+                        ${t.senderHistory?.firstTime && level !== 'safe' ? '<span class="new-sender" title="You have never received an email from this address before">New sender</span>' : ''}
+                        <span class="email-time">${date}</span>
+                    </span>
+                    <span class="email-subject">${escHtml(email.subject || '(No subject)')}</span>
+                    <span class="email-snippet">${escHtml(email.snippet || '')}</span>
+                </span>
+            </button>
+            <div class="email-side">
+                <span class="risk-pill ${level}${t.category === 'newsletter' && level === 'safe' ? ' newsletter' : ''}" title="${level === 'safe' ? (t.category === 'newsletter' ? 'Verified newsletter' : 'Nothing unusual') : escHtml(plainWhy)}">${word}</span>
+                <button class="btn-icon email-relabel" title="Change threat level" aria-label="Change threat level"
+                    onclick="openUserOverrideModal('${email.id}')">
+                    <i class="fas fa-edit"></i>
                 </button>
             </div>
         </div>`;
@@ -655,13 +811,13 @@ function openUserOverrideModal(emailId) {
         modal.id = 'userOverrideModal';
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
         modal.innerHTML = `
-            <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;width:100%;max-width:420px;padding:24px">
+            <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:16px;width:100%;max-width:420px;padding:24px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-                    <h3 style="font-size:15px;font-weight:600;color:#f8fafc;display:flex;align-items:center;gap:8px">
+                    <h3 style="font-size:15px;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px">
                         <i class="fas fa-edit" style="color:#818cf8"></i> Change Threat Level
                     </h3>
                     <button onclick="document.getElementById('userOverrideModal').remove()"
-                        style="background:none;border:none;color:#475569;font-size:18px;cursor:pointer">×</button>
+                        style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer">×</button>
                 </div>
                 <p id="uomSubject" style="font-size:12px;color:#64748b;margin-bottom:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></p>
                 <div style="margin-bottom:14px">
@@ -670,7 +826,7 @@ function openUserOverrideModal(emailId) {
                 </div>
                 <div style="margin-bottom:16px">
                     <label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">New Level</label>
-                    <select id="uomNewLevel" style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f8fafc;font-size:13px;outline:none">
+                    <select id="uomNewLevel" style="width:100%;padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:13px;outline:none">
                         <option value="suspicious">⚠️ Suspicious</option>
                         <option value="dangerous">🚨 Dangerous</option>
                         <option value="safe">✅ Safe (not a threat)</option>
@@ -679,11 +835,11 @@ function openUserOverrideModal(emailId) {
                 <div style="margin-bottom:16px">
                     <label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Note (optional)</label>
                     <textarea id="uomNote" rows="2" placeholder="Why are you changing this level?"
-                        style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#f8fafc;font-size:12px;outline:none;resize:vertical;font-family:inherit"></textarea>
+                        style="width:100%;padding:9px 12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:12px;outline:none;resize:vertical;font-family:inherit"></textarea>
                 </div>
                 <div style="display:flex;gap:10px">
                     <button onclick="document.getElementById('userOverrideModal').remove()"
-                        style="flex:1;padding:10px;background:none;border:1px solid #334155;color:#475569;border-radius:8px;cursor:pointer;font-size:13px">Cancel</button>
+                        style="flex:1;padding:10px;background:none;border:1px solid var(--border-color);color:var(--text-muted);border-radius:8px;cursor:pointer;font-size:13px">Cancel</button>
                     <button id="uomSaveBtn" onclick="submitUserOverride()"
                         style="flex:1;padding:10px;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">
                         <i class="fas fa-save"></i> Save
@@ -721,7 +877,7 @@ async function submitUserOverride() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
     try {
-        const res  = await apiFetch(`${API_BASE}/api/threats/${emailId}/reclassify`, {
+        const res  = await apiFetch(`${API_BASE}/api/threats/${encodeURIComponent(emailId)}/reclassify`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ newLevel, note })
@@ -730,7 +886,8 @@ async function submitUserOverride() {
 
         if (data.success) {
             modal.remove();
-            showToast('Level Updated', `Email reclassified as ${newLevel}`, 'success');
+            showToast('Level Updated', data.trustedSender ? `Marked safe. Future emails from ${data.trustedSender} will be trusted.` : `Email reclassified as ${newLevel}`, 'success');
+            loadSafeSenders();
             // Refresh emails staying in whichever filter is active
             await loadEmails(currentFilter);
             await loadThreats();
@@ -748,20 +905,36 @@ async function submitUserOverride() {
     }
 }
 
-function toggleScanPanel(emailId) {
-    const panel = document.getElementById(`scan-panel-${emailId}`);
-    const btn   = document.getElementById(`scan-btn-${emailId}`);
-    const arrow = document.getElementById(`scan-arrow-${emailId}`);
-    if (!panel) return;
-    const isOpen = panel.style.display !== 'none';
-    panel.style.display = isOpen ? 'none' : 'block';
-    btn.classList.toggle('active', !isOpen);
-    if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-}
-
 // ============================================================
 // THREATS — load from backend
 // ============================================================
+// Sender, link and attachment checks for a threat card
+function threatChecks(email) {
+    const t   = email.threat || {};
+    const raw = t.authDetails?.raw || '';
+    const get = (re) => ((raw.match(re) || [])[1] || 'none').toLowerCase();
+    const authState = v => v === 'pass' ? 'pass' : (v === 'fail' || v === 'permerror') ? 'fail' : v === 'softfail' ? 'warn' : 'none';
+    const out = [
+        ['SPF',   get(/spf=(pass|fail|softfail|neutral|none|permerror)/i)],
+        ['DKIM',  get(/dkim=(pass|fail|neutral|none|permerror)/i)],
+        ['DMARC', get(/dmarc=(pass|fail|none)/i)]
+    ].map(([n, v]) => ({ label: `${n} ${v === 'none' ? '—' : v}`, state: authState(v), title: raw ? `${n}: ${v}` : 'No authentication headers in this email' }));
+
+    const links = email.links || [];
+    const BAD = [/paypa1\./i, /g00gle\./i, /amaz0n\./i, /micros0ft\./i, /secure-login\./i, /account-verify\./i, /login-confirm\./i, /verify-account\./i, /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/];
+    const flaggedUrls = new Set((t.iocs && t.iocs.urls) || []);
+    const bad = links.filter(u => flaggedUrls.has(u) || BAD.some(p => p.test(u))).length;
+    out.push({ label: links.length ? `${links.length} link${links.length === 1 ? '' : 's'}${bad ? ` · ${bad} suspicious` : ''}` : 'No links',
+               state: bad ? 'fail' : links.length >= 6 ? 'warn' : links.length ? 'pass' : 'none',
+               title: links.length >= 6 && !bad ? 'Many links is common in phishing and in newsletters' : '' });
+
+    const atts = email.attachments || [];
+    const risky = atts.filter(a => /\.(exe|bat|cmd|com|msi|ps1|vbs|js|jse|scr|pif|hta|jar|lnk|iso|docm|xlsm|pptm)$/i.test(a.filename || '') || /\.\w{2,4}\.(exe|bat|cmd|scr|vbs|js|pif|com)$/i.test(a.filename || '')).length;
+    out.push({ label: atts.length ? `${atts.length} file${atts.length === 1 ? '' : 's'}${risky ? ` · ${risky} risky` : ''}` : 'No files',
+               state: risky ? 'fail' : atts.length ? 'pass' : 'none', title: '' });
+    return out;
+}
+
 async function loadThreats() {
     const detailsEl = document.getElementById('detailedThreats');
     detailsEl.innerHTML = `<div class="loading-state">
@@ -772,31 +945,19 @@ async function loadThreats() {
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
 
-        // Category counts
+        // Category counts: worked out by the server from every saved scan (quarantined ones included)
         const { summary } = data;
-        const total = summary.total || 1;
-
-        // Read subType assigned by the backend classifier — no guessing from keywords.
-        // subType values: 'phishing' | 'malware_link' | 'spoofed_sender' | 'other'
-        // These are set in threatService.js after all 9 layers run and stored in DB.
-        let phishing = 0, malware = 0, spoofing = 0, other = 0;
-        data.threats.forEach(t => {
-            const subType = t.threat?.subType || 'phishing';
-            if      (subType === 'malware_link')    malware++;
-            else if (subType === 'spoofed_sender')  spoofing++;
-            else if (subType === 'other')            other++;
-            else                                     phishing++; // 'phishing' or any unknown
-        });
-
-        const pct = n => total ? `${((n / total) * 100).toFixed(1)}%` : '0%';
-        document.getElementById('catPhishing').textContent    = phishing;
-        document.getElementById('catPhishingPct').textContent = pct(phishing);
-        document.getElementById('catMalware').textContent     = malware;
-        document.getElementById('catMalwarePct').textContent  = pct(malware);
-        document.getElementById('catSpoofing').textContent    = spoofing;
-        document.getElementById('catSpoofingPct').textContent = pct(spoofing);
-        document.getElementById('catOther').textContent       = other;
-        document.getElementById('catOtherPct').textContent    = pct(other);
+        const types = summary.types || {};
+        const total = summary.total || 0;
+        const pct = n => total ? `${Math.round((n / total) * 100)}% of threats` : 'none yet';
+        [['catPhishing', types.phishing], ['catMalware', types.malware_link], ['catSpoofing', types.spoofed_sender], ['catOther', types.other]]
+            .forEach(([id, n]) => {
+                document.getElementById(id).textContent = n || 0;
+                document.getElementById(id + 'Pct').textContent = pct(n || 0);
+            });
+        const sub = document.getElementById('threatsSubtitle');
+        if (sub) sub.textContent = `Last ${data.days || 90} days · ${summary.scanned || 0} emails checked · ${total} threat${total === 1 ? '' : 's'}` +
+            (summary.quarantined ? ` · ${summary.quarantined} moved to spam automatically` : '');
 
         // Detailed cards
         if (data.threats.length === 0) {
@@ -831,37 +992,45 @@ async function loadThreats() {
                     <p class="admin-remark-text">${escHtml(overrideRemark)}</p>
                 </div>` : '';
 
-            return `<div class="threat-detail-card" id="threat-${email.id}">
-                <div class="threat-detail-header">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <div class="threat-severity ${sevCls}">${sev}</div>
-                        ${overrideBadge}
-                    </div>
-                    <span class="threat-date">${formatDate(email.date)}</span>
+            const word     = t.level === 'dangerous' ? 'Dangerous' : 'Worth a look';
+            const score    = Math.max(0, Math.min(100, Number(t.score) || 0));
+            const typeName = { phishing: 'Phishing', malware_link: 'Malware', spoofed_sender: 'Spoofed sender', other: 'Other' }[t.subType] || 'Phishing';
+            const fromStr  = String(email.from || '');
+            const fromName = fromStr.replace(/<.*>/, '').replace(/"/g, '').trim() || fromStr;
+            const fromAddr = (fromStr.match(/<([^>]+)>/) || [])[1] || '';
+            const checks   = threatChecks(email);
+
+            return `<div class="threat-detail-card tcard ${t.level}" id="threat-${email.id}">
+                <div class="tcard-top">
+                    <span class="risk-pill ${t.level}">${word}</span>
+                    <span class="tcard-type">${typeName}</span>
+                    ${overrideBadge}
+                    ${email.quarantined ? '<span class="tcard-q" title="Genjutsu moved this to spam automatically"><i class="fas fa-box-archive"></i> In spam</span>' : ''}
+                    <time class="threat-date">${formatDate(email.date)}</time>
                 </div>
-                <h3>${escHtml(email.subject)}</h3>
-                <div class="threat-info-grid">
-                    <div class="info-item">
-                        <label>From:</label>
-                        <span>${escHtml(email.from)}</span>
+                <h3 class="tcard-subject">${escHtml(email.subject || '(No subject)')}</h3>
+                <p class="tcard-from">${escHtml(fromName)}${fromAddr ? ` <span>&lt;${escHtml(fromAddr)}&gt;</span>` : ''}</p>
+
+                <div class="tcard-score" role="img" aria-label="Threat score ${score} out of 100">
+                    <div class="tcard-bar"><span style="width:${score}%"></span><i style="left:30%" title="Worth a look from 30"></i><i style="left:60%" title="Dangerous from 60"></i></div>
+                    <b>${score}<small>/100</small></b>
+                </div>
+
+                <div class="tcard-grid">
+                    <div>
+                        <div class="tcard-label">Why it was flagged</div>
+                        <ul class="tcard-reasons">${(t.reasons || []).map(r => `<li>${escHtml(r)}</li>`).join('') || '<li>No reason recorded</li>'}</ul>
                     </div>
-                    <div class="info-item">
-                        <label>Threat Score:</label>
-                        <span>${t.score}/100</span>
-                    </div>
-                    <div class="info-item">
-                        <label>Reasons:</label>
-                        <span>${(t.reasons || []).slice(0,2).join('; ') || 'N/A'}</span>
-                    </div>
-                    <div class="info-item">
-                        <label>Links Found:</label>
-                        <span>${email.links?.length || 0} detected</span>
+                    <div>
+                        <div class="tcard-label">Checks</div>
+                        <div class="tcard-checks">${checks.map(c => `<span class="tcheck ${c.state}" title="${escHtml(c.title)}"><span class="dot" aria-hidden="true"></span>${escHtml(c.label)}</span>`).join('')}</div>
                     </div>
                 </div>
+                ${(t.mitre || []).length ? `<div class="tcard-mitre"><span class="tcard-label">MITRE ATT&amp;CK</span>${t.mitre.map(m => `<a class="mitre-chip" href="${m.url}" target="_blank" rel="noopener noreferrer" title="${escHtml(m.name)}">${m.id} · ${escHtml(m.name)}</a>`).join('')}</div>` : ''}
                 ${remarkBlock}
                 <div class="threat-actions">
                     <button class="btn btn-secondary"
-                        onclick="openEmailModal('${email.id}')">View Email</button>
+                        onclick="openEmailModal('${email.id}')"><i class="fas fa-search"></i> Investigate</button>
                     <button class="btn btn-primary"
                         onclick="engageHoneypotById('${email.id}')">
                         <i class="fas fa-bug"></i> Engage Honeypot
@@ -891,11 +1060,175 @@ function initEmailModal() {
     });
 }
 
+function cleanEmailText(t) {
+    return String(t || '')
+        .replace(/\r\n?/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .slice(0, 20000);
+}
+
+function highlightLinks(text) {
+    // Escape first, then wrap URLs in a non-clickable span
+    return escHtml(text).replace(/https?:\/\/[^\s<>"')\]]+/g, u => `<span class="mec-link" title="Link (not clickable)">${u}</span>`);
+}
+
+// Indicators of compromise for one email, with a copy button
+function iocBlock(iocs) {
+    if (!iocs) return '';
+    const rows = [['Sender addresses', iocs.emails], ['Domains', iocs.domains], ['URLs', iocs.urls], ['IP addresses', iocs.ips], ['Risky files', iocs.attachments]]
+        .filter(([, v]) => v && v.length);
+    if (!rows.length) return '';
+    const plain = rows.map(([k, v]) => `${k}:\n${v.join('\n')}`).join('\n\n');
+    return `<div class="modal-iocs">
+        <div class="mi-head"><strong>Indicators of compromise</strong>
+            <button type="button" class="mec-toggle" onclick="navigator.clipboard.writeText(this.dataset.iocs).then(() => showToast('Copied', 'Indicators copied to the clipboard', 'success'))" data-iocs="${escHtml(plain)}">Copy</button></div>
+        ${rows.map(([k, v]) => `<div class="mi-row"><span>${k}</span><div>${v.map(x => `<code>${escHtml(x)}</code>`).join('')}</div></div>`).join('')}
+    </div>`;
+}
+
+// Download every threat's indicators as CSV or JSON (for a SIEM or a report)
+function exportIocs(format) {
+    const threats = cachedEmails.filter(e => e.threat && e.threat.level !== 'safe' && e.threat.iocs);
+    if (!threats.length) { showToast('Nothing to export', 'No indicators found in the current threats', 'info'); return; }
+    let blob, name;
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === 'json') {
+        const data = threats.map(e => ({ subject: e.subject, from: e.from, date: e.date, level: e.threat.level, score: e.threat.score,
+            type: e.threat.subType, mitre: (e.threat.mitre || []).map(m => m.id), iocs: e.threat.iocs }));
+        blob = new Blob([JSON.stringify({ generated: new Date().toISOString(), tool: 'Genjutsu', threats: data }, null, 2)], { type: 'application/json' });
+        name = `genjutsu-iocs-${stamp}.json`;
+    } else {
+        const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const lines = [['type', 'value', 'email_subject', 'email_from', 'level', 'score', 'mitre'].join(',')];
+        threats.forEach(e => {
+            const i = e.threat.iocs, m = (e.threat.mitre || []).map(x => x.id).join(' ');
+            [['email', i.emails], ['domain', i.domains], ['url', i.urls], ['ip', i.ips], ['file', i.attachments]].forEach(([type, list]) =>
+                (list || []).forEach(v => lines.push([type, v, e.subject, e.from, e.threat.level, e.threat.score, m].map(q).join(','))));
+        });
+        blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+        name = `genjutsu-iocs-${stamp}.csv`;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ── Trusted senders (Settings) ──
+async function loadSafeSenders() {
+    const list = document.getElementById('safeSendersList');
+    if (!list) return;
+    try {
+        const data = await (await apiFetch(`${API_BASE}/api/settings/safe-senders`)).json();
+        const rows = data.senders || [];
+        list.innerHTML = rows.length
+            ? rows.map(r => `<li><span>${escHtml(r.sender_email)}</span><button type="button" class="btn-icon" aria-label="Stop trusting ${escHtml(r.sender_email)}" onclick="removeSafeSender('${escHtml(r.sender_email)}')"><i class="fas fa-times"></i></button></li>`).join('')
+            : '<li class="empty">No trusted senders yet. Marking an email as safe adds its sender here.</li>';
+    } catch (_) { list.innerHTML = '<li class="empty">Could not load trusted senders.</li>'; }
+}
+async function addSafeSenderFromForm(ev) {
+    ev.preventDefault();
+    const input = document.getElementById('safeSenderInput');
+    const res = await apiFetch(`${API_BASE}/api/settings/safe-senders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sender: input.value }) });
+    const data = await res.json();
+    if (data.success) { input.value = ''; showToast('Sender trusted', `${data.sender} won't be flagged unless something is clearly wrong`, 'success'); loadSafeSenders(); }
+    else showToast('Could not add', data.error || 'Enter a valid email address', 'warning');
+}
+async function removeSafeSender(addr) {
+    await apiFetch(`${API_BASE}/api/settings/safe-senders/${encodeURIComponent(addr)}`, { method: 'DELETE' });
+    showToast('Removed', `${addr} is no longer trusted`, 'info');
+    loadSafeSenders();
+}
+
+// ── Phase 2: rules, activity, Discord, digest, reporting, delete account ──
+const jsonReq = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+
+async function loadRules() {
+    const list = document.getElementById('rulesList'); if (!list) return;
+    try {
+        const data = await (await apiFetch(`${API_BASE}/api/account/rules`)).json();
+        const label = { trust: 'Trust', flag: 'Worth a look', quarantine: 'Quarantine' };
+        list.innerHTML = (data.rules || []).length
+            ? data.rules.map(r => `<li><span>When ${escHtml(r.description)} → <b class="rule-${r.action}">${label[r.action]}</b></span><button type="button" class="btn-icon" aria-label="Delete rule" onclick="deleteRule('${escHtml(r.rule_id)}')"><i class="fas fa-times"></i></button></li>`).join('')
+            : '<li class="empty">No rules yet. Example: Sender\'s domain is college.edu.np → Trust it.</li>';
+    } catch (_) { list.innerHTML = '<li class="empty">Could not load rules.</li>'; }
+}
+async function addRuleFromForm(ev) {
+    ev.preventDefault();
+    const body = { field: document.getElementById('ruleField').value, value: document.getElementById('ruleValue').value, action: document.getElementById('ruleAction').value };
+    const data = await (await apiFetch(`${API_BASE}/api/account/rules`, jsonReq('POST', body))).json();
+    if (data.success) { document.getElementById('ruleValue').value = ''; showToast('Rule added', 'It applies from the next scan', 'success'); loadRules(); }
+    else showToast('Could not add rule', data.error || 'Check the value', 'warning');
+}
+async function deleteRule(id) {
+    await apiFetch(`${API_BASE}/api/account/rules/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    loadRules();
+}
+document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'ruleField') {
+        document.getElementById('ruleValue').placeholder = { domain: 'college.edu.np', sender: 'name@example.com', subject: 'lottery', attachment: 'exe' }[e.target.value];
+    }
+});
+
+async function loadActivity() {
+    const list = document.getElementById('activityList'); if (!list) return;
+    try {
+        const data = await (await apiFetch(`${API_BASE}/api/account/activity`)).json();
+        list.innerHTML = (data.activity || []).length
+            ? data.activity.map(a => `<li><time>${formatDate(a.at)}</time><span><b>${escHtml(a.action)}</b>${a.detail ? ` · ${escHtml(a.detail)}` : ''}</span></li>`).join('')
+            : '<li class="empty">Nothing yet.</li>';
+    } catch (_) { list.innerHTML = '<li class="empty">Could not load activity.</li>'; }
+}
+
+async function loadDiscordStatus() {
+    const el = document.getElementById('discordStatus'); if (!el) return;
+    try {
+        const s = (await (await apiFetch(`${API_BASE}/api/settings`)).json()).settings || {};
+        el.innerHTML = s.discordConnected ? '<b class="ok-text">Connected.</b>' : '';
+    } catch (_) {}
+}
+async function saveDiscord(ev) {
+    ev.preventDefault();
+    const url = document.getElementById('discordUrl').value.trim();
+    const data = await (await apiFetch(`${API_BASE}/api/account/discord`, jsonReq('PUT', { url }))).json();
+    if (data.success) { document.getElementById('discordUrl').value = ''; showToast(url ? 'Discord connected' : 'Discord disconnected', url ? 'Press Test to check it works' : 'Alerts will no longer be sent', 'success'); loadDiscordStatus(); }
+    else showToast('Could not save', data.error, 'warning');
+}
+async function testDiscord() {
+    const data = await (await apiFetch(`${API_BASE}/api/account/discord/test`, jsonReq('POST'))).json();
+    showToast(data.success ? 'Test sent' : 'Test failed', data.success ? 'Check your Discord channel' : (data.error || 'Could not reach Discord'), data.success ? 'success' : 'danger');
+}
+
+async function sendDigestNow(btn) {
+    btn.disabled = true; btn.textContent = 'Sending…';
+    const data = await (await apiFetch(`${API_BASE}/api/account/digest/send`, jsonReq('POST'))).json();
+    btn.disabled = false; btn.textContent = 'Send one now';
+    showToast(data.success ? 'Digest sent' : 'Could not send', data.success ? `Check your inbox for "${data.subject}"` : data.error, data.success ? 'success' : 'danger');
+}
+
+async function reportPhishing(emailId, subject, btn) {
+    if (!confirm('Report this email to the Anti-Phishing Working Group (reportphishing@apwg.org)?\n\nGenjutsu will forward the original email from your account so they can take the fake site down.')) return;
+    btn.disabled = true;
+    const data = await (await apiFetch(`${API_BASE}/api/account/report-phishing/${encodeURIComponent(emailId)}`, jsonReq('POST', { subject }))).json();
+    btn.disabled = false;
+    showToast(data.success ? 'Reported' : 'Report failed', data.success ? 'Thanks — the email was forwarded to APWG' : data.error, data.success ? 'success' : 'danger');
+}
+
+async function deleteAccount() {
+    const typed = prompt('This permanently deletes your Genjutsu account and all its data. It cannot be undone.\n\nType DELETE to confirm:');
+    if (typed !== 'DELETE') { if (typed !== null) showToast('Not deleted', 'You need to type DELETE exactly', 'info'); return; }
+    const data = await (await apiFetch(`${API_BASE}/api/account`, jsonReq('DELETE', { confirm: 'DELETE' }))).json();
+    if (data.success) { alert('Your account and data have been deleted.'); location.href = '/'; }
+    else showToast('Could not delete', data.error, 'danger');
+}
+
 function openEmailModal(emailId) {
     const email = emailDataMap[emailId] || cachedEmails.find(e => e.id === emailId);
     if (!email) { showToast('Error', 'Email not found — try clicking Scan Now first', 'warning'); return; }
 
     const modal     = document.getElementById('emailModal');
+    modal.querySelector('.modal')?.classList.remove('reading');
     const bodyEl    = document.getElementById('modalBody');
     const subjectEl = document.getElementById('modalSubject');
     const hpBtn     = document.getElementById('modalEngageHoneypot');
@@ -932,10 +1265,16 @@ function openEmailModal(emailId) {
             <strong>⚠️ Threat Reasons:</strong>
             <ul>${t.reasons.map(r => `<li>${escHtml(r)}</li>`).join('')}</ul>
         </div>` : ''}
+        ${(t?.mitre || []).length ? `
+        <div class="modal-mitre">
+            <strong>MITRE ATT&amp;CK techniques</strong>
+            <div>${t.mitre.map(m => `<a class="mitre-chip" href="${m.url}" target="_blank" rel="noopener noreferrer">${m.id} · ${escHtml(m.name)}</a>`).join('')}</div>
+        </div>` : ''}
+        ${iocBlock(t?.iocs)}
         ${email.links?.length ? `
         <div class="modal-links">
             <strong>🔗 Links Found (${email.links.length}):</strong>
-            <ul>${email.links.slice(0,5).map(l =>
+            <ul>${email.links.slice(0,20).map(l =>
                 `<li style="word-break:break-all;font-size:12px;color:var(--warning-color)">${escHtml(l)}</li>`
             ).join('')}</ul>
         </div>` : ''}
@@ -944,6 +1283,37 @@ function openEmailModal(emailId) {
             <p>${escHtml(email.snippet)}</p>
         </div>`;
 
+    // ── Full email content, shown as safe plain text ──────────────
+    // Links are highlighted but not clickable, and no images or remote content load,
+    // so opening a phishing email here can't track or trick the user.
+    const fullText = cleanEmailText(email.body || '');
+    const contentBox = document.createElement('div');
+    contentBox.className = 'modal-email-content';
+    contentBox.innerHTML = `
+        <div class="mec-head">
+            <strong><i class="fas fa-envelope-open-text"></i> Email content</strong>
+            ${fullText ? `<button type="button" class="mec-toggle" aria-expanded="false">Show full message</button>` : ''}
+        </div>
+        <p class="mec-note"><i class="fas fa-shield-alt"></i> Shown as plain text: links can't be clicked and images don't load, so it's safe to read.</p>
+        ${fullText
+            ? `<div class="mec-text collapsed" tabindex="0">${highlightLinks(fullText)}</div>`
+            : `<div class="mec-text empty">This email has no plain-text version, so only the preview is available: <em>${escHtml(email.snippet || '')}</em></div>`}`;
+    const metaEl = bodyEl.querySelector('.modal-email-meta');
+    metaEl.after(contentBox);
+    bodyEl.querySelector('.modal-body-text')?.remove();   // the full content replaces the short preview
+    const tgl = contentBox.querySelector('.mec-toggle');
+    tgl?.addEventListener('click', () => {
+        const box = contentBox.querySelector('.mec-text');
+        const open = box.classList.toggle('collapsed') === false;
+        tgl.setAttribute('aria-expanded', String(open));
+        tgl.textContent = open ? 'Show less' : 'Show full message';
+    });
+
+    const reportBtn = document.getElementById('modalReport');
+    if (reportBtn) {
+        reportBtn.style.display = t?.level !== 'safe' ? 'inline-flex' : 'none';
+        reportBtn.onclick = () => reportPhishing(email.id, email.subject, reportBtn);
+    }
     // Show honeypot button only for threats
     if (t?.level !== 'safe') {
         hpBtn.style.display = 'inline-flex';
@@ -971,6 +1341,59 @@ function openEmailModal(emailId) {
     }, 50);
 
     modal.style.display = 'flex';
+    attachSenderProfile(email.from);
+}
+
+// ── Email reader: just the email, like opening it in a mail app ──
+// Used by "View Email" on the Threats page, where the threat details are
+// already on the card. Shown as plain text: links can't be clicked and
+// no images or remote content load.
+function openEmailReader(emailId) {
+    const email = emailDataMap[emailId] || cachedEmails.find(e => e.id === emailId);
+    if (!email) { showToast('Error', 'Email not found — try clicking Scan Now first', 'warning'); return; }
+
+    const modal  = document.getElementById('emailModal');
+    const bodyEl = document.getElementById('modalBody');
+    modal.querySelector('.modal')?.classList.add('reading');
+    document.getElementById('modalSubject').textContent = email.subject || '(No subject)';
+    const hpBtn = document.getElementById('modalEngageHoneypot');
+    if (hpBtn) hpBtn.style.display = 'none';
+    const rpBtn = document.getElementById('modalReport');
+    if (rpBtn) rpBtn.style.display = 'none';
+
+    const from     = String(email.from || '');
+    const fromName = from.replace(/<.*>/, '').replace(/"/g, '').trim();
+    const fromAddr = (from.match(/<([^>]+)>/) || [])[1] || (fromName.includes('@') ? '' : '');
+    const initial  = ((fromName || from).match(/[A-Za-z0-9]/) || ['?'])[0].toUpperCase();
+    const text     = cleanEmailText(email.body || '');
+    const atts     = email.attachments || [];
+
+    const lvl   = (email.threat?.overrideLevel || email.threat?.level || 'safe');
+    const why   = (email.threat?.reasons || [])[0] ? plainReason(String(email.threat.reasons[0]).split(':')[0]) : '';
+    const verdict = lvl === 'safe'
+        ? `<div class="reader-verdict safe"><i class="fas fa-check-circle" aria-hidden="true"></i><span>Safe · nothing unusual found</span><button type="button" onclick="openEmailModal('${email.id}')">Scan details</button></div>`
+        : `<div class="reader-verdict ${lvl}"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i><span>${lvl === 'dangerous' ? 'Dangerous' : 'Worth a look'}${why ? ' · ' + escHtml(why) : ''}</span><button type="button" onclick="openEmailModal('${email.id}')">See why it was flagged →</button></div>`;
+    bodyEl.innerHTML = `
+        ${verdict}
+        <article class="reader" aria-label="Email">
+            <header class="reader-head">
+                <div class="reader-avatar" aria-hidden="true">${escHtml(initial)}</div>
+                <div class="reader-who">
+                    <div class="reader-from"><strong>${escHtml(fromName || fromAddr || from)}</strong>${fromAddr && fromName ? ` <span>&lt;${escHtml(fromAddr)}&gt;</span>` : ''}</div>
+                    <div class="reader-to">to ${escHtml(email.to || 'me')}</div>
+                </div>
+                <time class="reader-date">${formatDate(email.date)}</time>
+            </header>
+            ${atts.length ? `<div class="reader-atts">${atts.map(a => `<span class="reader-att"><i class="fas fa-paperclip" aria-hidden="true"></i>${escHtml(a.filename || 'attachment')}</span>`).join('')}</div>` : ''}
+            <div class="reader-body">${text
+                ? highlightLinks(text)
+                : `<span class="reader-empty">This email has no plain-text version, so only its preview is available:</span>\n\n${escHtml(email.snippet || '')}`}</div>
+            <p class="reader-note"><i class="fas fa-shield-alt" aria-hidden="true"></i> Shown as plain text: links can't be clicked and images don't load, so it's safe to read.</p>
+        </article>`;
+
+    modal.style.display = 'flex';
+    bodyEl.scrollTop = 0;
+    attachSenderProfile(email.from);
 }
 
 function closeModal() {
@@ -1041,6 +1464,9 @@ async function engageHoneypot(emailId, senderEmail, subject) {
             // conversation starting from the original email, not a new tab ──
             setTimeout(() => nav('honeypot'), 800);
             await loadHoneypotSessions();
+        } else if (data.alreadyActive) {
+            showToast('Already engaged', 'Nami is already talking to this scammer.', 'info');
+            setTimeout(() => nav('honeypot'), 800);
         } else if (data.noReplyBlocked) {
             // FIX: specific message when email has no real scammer Reply-To address
             showToast('Not a Scammer Email',
@@ -1053,6 +1479,42 @@ async function engageHoneypot(emailId, senderEmail, subject) {
     }
 }
 
+function renderLeaderboard(lb) {
+    if (!lb) return;
+    document.getElementById('hpMonthMinutes').textContent = `${lb.monthMinutes || 0} min`;
+    document.getElementById('hpMostReplies').textContent = lb.mostReplies || 0;
+    const list = document.getElementById('hpBoardList');
+    const rows = (lb.longest || []).filter(x => x.minutesWasted > 0 || x.repliesSent > 0);
+    list.innerHTML = rows.length
+        ? rows.map(x => `<li><span class="who">${escHtml(x.senderEmail)}</span><span>${x.repliesSent} ${x.repliesSent === 1 ? 'reply' : 'replies'}</span><b>${x.minutesWasted} min</b></li>`).join('')
+        : '<li class="empty">No conversations yet.</li>';
+}
+
+let lastIntel = null;
+async function loadIntel() {
+    const box = document.getElementById('hpIntel'); if (!box) return;
+    try {
+        const data = await (await apiFetch(`${API_BASE}/api/honeypot/intel`)).json();
+        lastIntel = data;
+        const t = data.total || {};
+        const label = { bankAccounts: 'Bank accounts', ibans: 'IBANs', swift: 'SWIFT codes', crypto: 'Crypto wallets', phones: 'Phone numbers', telegram: 'Telegram', emails: 'Email addresses', urls: 'Links' };
+        const rows = Object.keys(label).filter(k => (t[k] || []).length);
+        box.innerHTML = rows.length
+            ? rows.map(k => `<div class="mi-row"><span>${label[k]}</span><div>${t[k].map(v => `<code>${escHtml(v)}</code>`).join('')}</div></div>`).join('')
+            : '<p class="hp-sub">Nothing collected yet. When a scammer replies with payment details or contact numbers, they appear here.</p>';
+    } catch (_) {}
+}
+function exportIntel() {
+    if (!lastIntel || !(lastIntel.sessions || []).length) { showToast('Nothing to export', 'No scammer details collected yet', 'info'); return; }
+    const blob = new Blob([JSON.stringify({ generated: new Date().toISOString(), tool: 'Genjutsu · Nami', ...lastIntel }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `genjutsu-scammer-intel-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+async function savePersona(value) {
+    await apiFetch(`${API_BASE}/api/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ honeypotPersona: value }) });
+    showToast('Persona saved', `Nami will play: ${document.querySelector('#hpPersona option:checked').textContent}`, 'success');
+}
+
 async function loadHoneypotSessions() {
     const list = document.getElementById('honeypotSessionsList');
 
@@ -1060,15 +1522,17 @@ async function loadHoneypotSessions() {
         const res  = await apiFetch(`${API_BASE}/api/honeypot/sessions`);
         const data = await res.json();
 
-        document.getElementById('hpActiveSessions').textContent = data.totalSessions || 0;
+        document.getElementById('hpActiveSessions').textContent = data.activeConversations || 0;
+        renderLeaderboard(data.leaderboard);
+        loadIntel();
         document.getElementById('hpTimeWasted').textContent = `${data.totalMinutesWasted || 0} min`;
         // FIX 2: use victimsProtected from backend (scoped to this user), not a made-up formula
         document.getElementById('hpVictims').textContent = data.victimsProtected || 0;
 
         if (!data.sessions || data.sessions.length === 0) {
             list.innerHTML = `<div class="empty-state">
-                <i class="fas fa-bug"></i>
-                <p>No active sessions. Enable Honeypot Mode and click "Engage Honeypot" on a threat.</p>
+                <i class="fas fa-bullseye"></i>
+                <p>No conversations yet. Turn on honeypot mode, then engage a dangerous email.</p>
             </div>`;
             return;
         }
@@ -1080,21 +1544,22 @@ async function loadHoneypotSessions() {
                     <h4>${escHtml(s.subject || 'Scam Email')}</h4>
                     <span class="session-duration">${s.minutesWasted} min wasted</span>
                 </div>
-                <div class="session-details">
-                    <p><strong>Scammer Email:</strong> ${escHtml(s.senderEmail)}</p>
-                    <p><strong>Replies Sent:</strong> ${s.repliesSent}</p>
-                    <p><strong>Started:</strong> ${new Date(s.startedAt).toLocaleString()}</p>
-                </div>
+                <p class="session-meta">Nami as <b>${escHtml(s.personaLabel || 'Retired teacher, 72')}</b>${s.status !== 'active' ? ` · ended${s.stopReason ? ': ' + escHtml(s.stopReason) : ''}` : ' · active'}</p>
+                <dl class="session-details">
+                    <div><dt>Scammer</dt><dd>${escHtml(s.senderEmail)}</dd></div>
+                    <div><dt>Replies sent</dt><dd>${s.repliesSent}</dd></div>
+                    <div><dt>Started</dt><dd>${formatDate(s.startedAt)}</dd></div>
+                </dl>
                 <div class="session-actions">
                     <button class="btn btn-sm btn-secondary"
                         onclick="toggleHoneypotMessages('${s.sessionId}')">
                         <i class="fas fa-comments"></i> View Conversation
                     </button>
-                    <button class="btn btn-sm btn-danger"
-                        onclick="endHoneypotSession('${s.sessionId}')">End Session</button>
+                    ${s.status === 'active' ? `<button class="btn btn-sm btn-danger"
+                        onclick="endHoneypotSession('${s.sessionId}')">End Session</button>` : ''}
                 </div>
                 <div class="honeypot-messages" id="hp-msgs-${s.sessionId}"
-                    style="display:none;margin-top:12px;border-top:1px solid #1f2937;padding-top:12px"></div>
+                    style="display:none"></div>
             </div>`).join('');
 
     } catch (err) {
@@ -1116,8 +1581,8 @@ async function toggleHoneypotMessages(sessionId) {
         return;
     }
 
-    panel.style.display = 'block';
-    panel.innerHTML = '<p style="color:#64748b;font-size:12px">Loading conversation...</p>';
+    panel.style.display = 'flex';
+    panel.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Loading conversation...</p>';
 
     try {
         const res  = await apiFetch(`${API_BASE}/api/honeypot/sessions/${sessionId}/messages`);
@@ -1131,18 +1596,9 @@ async function toggleHoneypotMessages(sessionId) {
         panel.innerHTML = data.messages.map(m => {
             const isOut = m.direction === 'outbound';
             return `
-            <div style="margin-bottom:10px;padding:10px 14px;border-radius:8px;font-size:12px;
-                background:${isOut ? 'rgba(99,102,241,0.1)' : 'rgba(239,68,68,0.08)'};
-                border-left:3px solid ${isOut ? '#6366f1' : '#ef4444'}">
-                <div style="color:${isOut ? '#818cf8' : '#f87171'};font-weight:600;margin-bottom:5px">
-                    ${isOut ? '🛡️ You (Honeypot)' : '🎣 Scammer'}
-                    <span style="color:#475569;font-weight:400;margin-left:8px">
-                        ${new Date(m.sentAt).toLocaleString()}
-                    </span>
-                </div>
-                <div style="color:#cbd5e1;white-space:pre-wrap;line-height:1.5">
-                    ${escHtml(m.body || '(No content)')}
-                </div>
+            <div class="hp-bubble ${isOut ? 'out' : 'in'}">
+                <b>${isOut ? 'Nami (as you)' : 'Scammer'} <span class="hp-time">${new Date(m.sentAt).toLocaleString()}</span></b>
+                ${escHtml(m.body || '(No content)')}
             </div>`;
         }).join('');
     } catch (err) {
@@ -1164,10 +1620,10 @@ async function endHoneypotSession(sessionId) {
 }
 
 async function blockThreat(emailId) {
-    if (!confirm('Block this sender? The email will be moved to Gmail spam and future emails from this sender will be filtered automatically.')) return;
+    if (!confirm('Block this sender? The email will be moved to your spam/junk folder and future emails from this sender will be filtered automatically.')) return;
     const email = cachedEmails.find(e => e.id === emailId) || emailDataMap[emailId];
     try {
-        const res = await apiFetch(`${API_BASE}/api/emails/${emailId}/block`, {
+        const res = await apiFetch(`${API_BASE}/api/emails/${encodeURIComponent(emailId)}/block`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1180,7 +1636,7 @@ async function blockThreat(emailId) {
         // Remove from threats page visually
         const card = document.getElementById(`threat-${emailId}`);
         if (card) { card.style.opacity = '0.4'; setTimeout(() => card.remove(), 600); }
-        showToast('Blocked', 'Email moved to Gmail spam. Sender filtered.', 'success');
+        showToast('Blocked', 'Email moved to spam/junk. Sender filtered.', 'success');
     } catch (err) {
         showToast('Error', 'Could not block: ' + err.message, 'warning');
     }
@@ -1188,10 +1644,10 @@ async function blockThreat(emailId) {
 
 async function unblockEmail(gmailMsgId) {
     try {
-        const res  = await apiFetch(`${API_BASE}/api/emails/${gmailMsgId}/block`, { method: 'DELETE' });
+        const res  = await apiFetch(`${API_BASE}/api/emails/${encodeURIComponent(gmailMsgId)}/block`, { method: 'DELETE' });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
-        showToast('Unblocked', 'Email restored to Gmail inbox', 'success');
+        showToast('Unblocked', 'Email restored to your inbox', 'success');
         loadEmails('blocked');
     } catch (err) {
         showToast('Error', 'Could not unblock: ' + err.message, 'warning');
@@ -1213,6 +1669,8 @@ function initSettings() {
         });
         // Keep sound flag in sync with the toggle
         if ('soundAlerts' in settings) soundAlertsEnabled = !!settings.soundAlerts;
+        const personaSel = document.getElementById('hpPersona');
+        if (personaSel && settings.honeypotPersona) personaSel.value = settings.honeypotPersona;
 
         // Sync honeypot toggle
         const hpSwitch = document.getElementById('honeypotSwitch');
@@ -1257,8 +1715,13 @@ function initSettings() {
         });
     });
 
-    document.getElementById('reconnectGmail')?.addEventListener('click', function () {
-        window.location.href = `${API_BASE}/auth/google`;
+    document.getElementById('reconnectGmail')?.addEventListener('click', async function () {
+        const provider = window.genjutsuProvider || 'google';
+        if (provider === 'microsoft') { window.location.href = `${API_BASE}/auth/microsoft`; return; }
+        if (provider === 'google')    { window.location.href = `${API_BASE}/auth/google`;    return; }
+        // IMAP mailboxes reconnect by signing in again with an app password
+        await apiFetch(`${API_BASE}/auth/logout`);
+        window.location.reload();
     });
 }
 
@@ -1423,78 +1886,6 @@ function escHtml(str) {
 }
 
 // =============================================================
-// LOGIN PORTAL — Tab switching + Admin login
-// =============================================================
-
-function switchLoginTab(role) {
-    // Toggle tab buttons
-    document.getElementById('tabUser').classList.toggle('active',  role === 'user');
-    document.getElementById('tabAdmin').classList.toggle('active', role === 'admin');
-
-    // Toggle panels
-    document.getElementById('panelUser').classList.toggle('active',  role === 'user');
-    document.getElementById('panelAdmin').classList.toggle('active', role === 'admin');
-
-    // Clear error on switch
-    const err = document.getElementById('adminLoginError');
-    if (err) err.classList.remove('visible');
-}
-
-function toggleAdminPass() {
-    const input = document.getElementById('adminLoginPass');
-    const icon  = document.getElementById('passIcon');
-    if (input.type === 'password') {
-        input.type   = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type   = 'password';
-        icon.className = 'fas fa-eye';
-    }
-}
-
-async function doAdminLogin() {
-    const email    = (document.getElementById('adminLoginEmail')?.value || '').trim();
-    const password = document.getElementById('adminLoginPass')?.value || '';
-    const errorEl  = document.getElementById('adminLoginError');
-    const btn      = document.getElementById('btnAdminLogin');
-
-    if (!email || !password) {
-        errorEl.textContent = 'Please enter both email and password.';
-        errorEl.classList.add('visible');
-        return;
-    }
-
-    // Loading state
-    btn.disabled   = true;
-    btn.innerHTML  = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
-    errorEl.classList.remove('visible');
-
-    try {
-        const res  = await apiFetch(`${API_BASE}/admin/api/login`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            // Redirect to admin panel
-            window.location.href = '/admin';
-        } else {
-            errorEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid credentials. Please try again.';
-            errorEl.classList.add('visible');
-            btn.disabled  = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in as Admin';
-        }
-    } catch (err) {
-        errorEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Server error. Is the backend running?';
-        errorEl.classList.add('visible');
-        btn.disabled  = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in as Admin';
-    }
-}
-
-// =============================================================
 // NOTIFICATION PANEL — Two sections: Threat alerts + Admin remarks
 // =============================================================
 
@@ -1566,9 +1957,9 @@ function renderNotifications(alerts, remarks) {
                     <i class="fas fa-envelope" style="font-size:10px"></i> View Email ▾
                 </button>
                 <div id="remark-email-${emailId}" style="display:none;margin-top:8px;
-                    background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px">
-                    <div style="color:#94a3b8;margin-bottom:4px"><strong>Subject:</strong> ${escHtml(subject)}</div>
-                    ${senderEmail ? `<div style="color:#94a3b8;margin-bottom:4px"><strong>From:</strong> ${escHtml(senderEmail)}</div>` : ''}
+                    background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;padding:10px;font-size:12px">
+                    <div style="color:var(--text-muted);margin-bottom:4px"><strong>Subject:</strong> ${escHtml(subject)}</div>
+                    ${senderEmail ? `<div style="color:var(--text-muted);margin-bottom:4px"><strong>From:</strong> ${escHtml(senderEmail)}</div>` : ''}
                     <div style="color:#64748b;font-size:11px;margin-top:6px">
                         <button onclick="openEmailFromRemark('${emailId}')"
                             style="background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.25);
@@ -1852,9 +2243,7 @@ async function summariseEmailWithAI(emailId) {
 // =============================================================
 // ALSO CALL loadNotifications on startup
 // =============================================================
-// Patch into the existing checkAuthAndInit flow
-const _origCheckAuth = checkAuthAndInit;
-// We do this safely by hooking into the welcome toast timing
+// Load notifications shortly after the app opens
 setTimeout(() => {
     if (document.getElementById('mainApp')?.style.display !== 'none') {
         loadNotifications();
@@ -1887,13 +2276,6 @@ function startHoneypotPolling() {
     console.log('[Honeypot] Auto-poll started (every 30 sec)');
 }
 
-function stopHoneypotPolling() {
-    if (honeypotPollInterval) {
-        clearInterval(honeypotPollInterval);
-        honeypotPollInterval = null;
-    }
-}
-
 // Start polling automatically when app loads
 setTimeout(startHoneypotPolling, 5000);
 
@@ -1914,12 +2296,215 @@ function startAutoRefresh() {
     console.log('[Genjutsu] Auto-refresh started (60s interval)');
 }
 
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-}
-
 // Start auto-refresh 10 seconds after initial load
 setTimeout(startAutoRefresh, 10000);
+
+
+// ============================================================
+// LIGHT / DARK THEME
+// ============================================================
+function themeColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const v = name => cs.getPropertyValue(name).trim();
+    return { text: v('--text-secondary') || '#cbd5e1', muted: v('--text-muted') || '#94a3b8', grid: v('--border-color') || '#334155' };
+}
+
+function refreshChartTheme() {
+    const c = themeColors();
+    if (threatLineChart) {
+        const o = threatLineChart.options;
+        o.plugins.legend.labels.color = c.text;
+        ['x', 'y'].forEach(axis => { o.scales[axis].grid.color = c.grid; o.scales[axis].ticks.color = c.muted; });
+        threatLineChart.update('none');
+    }
+    if (threatPieChart) {
+        threatPieChart.options.plugins.legend.labels.color = c.text;
+        threatPieChart.update('none');
+    }
+    [checksChart, domainsChart].forEach(ch => {
+        if (!ch) return;
+        ch.options.scales.x.ticks.color = c.muted; ch.options.scales.x.grid.color = c.grid; ch.options.scales.y.ticks.color = c.text;
+        ch.update('none');
+    });
+}
+
+function applyTheme(theme) {
+    const t = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem('gj-theme', t); } catch (e) { /* private mode: theme just won't be remembered */ }
+    const next = t === 'dark' ? 'light' : 'dark';
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        btn.setAttribute('aria-label', `Switch to ${next} mode`);
+        btn.title = `Switch to ${next} mode`;
+    });
+    const sw = document.getElementById('themeSwitch');
+    if (sw) sw.checked = t === 'dark';
+    refreshChartTheme();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(document.documentElement.dataset.theme);
+    document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => {
+        applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    }));
+    document.getElementById('themeSwitch')?.addEventListener('change', e => applyTheme(e.target.checked ? 'dark' : 'light'));
+});
+
+
+// ============================================================
+// DEMO, FIRST-RUN TOUR, SIEM EXPORT, API KEYS
+// ============================================================
+function alertLoginError(msg) {
+    const el = document.getElementById('imapError');
+    if (el) { el.textContent = msg; el.style.display = 'block'; } else alert(msg);
+}
+
+const TOUR = [
+    { icon: 'fa-circle', title: 'The menu lives in the bubble', text: 'Tap the round button at the top left to move between Overview, Inbox, Threats, Honeypot and Settings.' },
+    { icon: 'fa-inbox', title: 'Every email gets a badge', text: 'Inbox shows each email with Safe, Suspicious or Dangerous. Open one to read it, then "See why it was flagged" for the evidence.' },
+    { icon: 'fa-crosshairs', title: 'Investigate threats', text: 'Threats lists only the risky emails, with every check that fired, MITRE techniques and indicators you can copy or export.' },
+    { icon: 'fa-sliders-h', title: 'Make it yours', text: 'In Settings you can quarantine dangerous emails automatically, add trusted senders and rules, and get alerts in Discord.' },
+];
+let tourIdx = 0;
+function startTour(force) {
+    let done = false;
+    try { done = localStorage.getItem('gj-tour-done') === '1'; } catch (_) {}
+    if (done && !force) return;
+    const el = document.getElementById('tour');
+    if (!el) return;
+    tourIdx = 0; renderTour(); el.hidden = false;
+    document.getElementById('tourNext').focus();
+}
+function renderTour() {
+    const t = TOUR[tourIdx];
+    document.getElementById('tourStep').innerHTML = `<i class="fas ${t.icon}" aria-hidden="true"></i>`;
+    document.getElementById('tourTitle').textContent = t.title;
+    document.getElementById('tourText').textContent = t.text;
+    document.getElementById('tourDots').innerHTML = TOUR.map((_, i) => `<span class="${i === tourIdx ? 'on' : ''}"></span>`).join('');
+    document.getElementById('tourNext').textContent = tourIdx === TOUR.length - 1 ? 'Done' : 'Next';
+}
+function endTour() {
+    document.getElementById('tour').hidden = true;
+    try { localStorage.setItem('gj-tour-done', '1'); } catch (_) {}
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const next = document.getElementById('tourNext'), skip = document.getElementById('tourSkip');
+    if (next) next.addEventListener('click', () => { if (tourIdx < TOUR.length - 1) { tourIdx++; renderTour(); } else endTour(); });
+    if (skip) skip.addEventListener('click', endTour);
+    document.addEventListener('keydown', (e) => { const t = document.getElementById('tour'); if (e.key === 'Escape' && t && !t.hidden) endTour(); });
+});
+
+async function siemExport(format) {
+    try {
+        const r = await apiFetch(`${API_BASE}/api/account/export/siem?format=${format}&days=30`);
+        if (!r.ok) throw new Error('Export failed');
+        const blob = await r.blob();
+        const ext = { jsonl: 'jsonl', cef: 'cef.log', syslog: 'syslog.log' }[format] || 'txt';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `genjutsu-events-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e) { showToast('Export failed', e.message, 'warning'); }
+    return false;
+}
+
+async function loadApiKeys() {
+    const list = document.getElementById('apiKeyList');
+    if (!list) return;
+    try {
+        const j = await (await apiFetch(`${API_BASE}/api/account/api-keys`)).json();
+        const keys = j.keys || [];
+        list.innerHTML = keys.length ? keys.map(k => `<li>
+            <time>${formatDate(k.created_at)}</time>
+            <span class="api-key-row"><strong>${escHtml(k.name || 'Unnamed key')}</strong> <code>${escHtml(k.prefix)}…</code>
+            <small>${k.last_used ? 'last used ' + formatDate(k.last_used) : 'never used'}</small>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="revokeApiKey('${escHtml(k.key_id)}')">Revoke</button></span></li>`).join('')
+            : `<li class="empty">${window.genjutsuDemo ? 'API keys are not available in the demo.' : 'No keys yet.'}</li>`;
+    } catch (_) { list.innerHTML = '<li class="empty">Could not load keys.</li>'; }
+}
+async function createApiKey(e) {
+    e.preventDefault();
+    const name = document.getElementById('apiKeyName').value.trim();
+    const box = document.getElementById('apiKeyNew');
+    try {
+        const r = await apiFetch(`${API_BASE}/api/account/api-keys`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+        const j = await r.json();
+        if (!j.success) throw new Error(j.error || 'Could not create the key');
+        box.innerHTML = `<p><strong>Copy this key now.</strong> It won't be shown again.</p>
+            <div class="api-key-show"><code id="apiKeyValue">${escHtml(j.key)}</code>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="navigator.clipboard.writeText(document.getElementById('apiKeyValue').textContent).then(()=>showToast('Copied','API key copied','success'))"><i class="fas fa-copy"></i> Copy</button></div>`;
+        box.hidden = false;
+        document.getElementById('apiKeyName').value = '';
+        loadApiKeys();
+    } catch (err) { showToast('API key', err.message, 'warning'); }
+}
+async function revokeApiKey(id) {
+    if (!confirm('Revoke this key? Anything using it will stop working.')) return;
+    await apiFetch(`${API_BASE}/api/account/api-keys/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    document.getElementById('apiKeyNew').hidden = true;
+    loadApiKeys();
+}
+
+
+// ── Notices from the Genjutsu team ───────────────────────────
+async function loadAnnouncements() {
+    const bar = document.getElementById('announceBar');
+    if (!bar) return;
+    let hidden = [];
+    try { hidden = JSON.parse(localStorage.getItem('gj-ann-hidden') || '[]'); } catch (_) {}
+    try {
+        const j = await (await apiFetch(`${API_BASE}/api/announcements`)).json();
+        const list = (j.announcements || []).filter(a => !hidden.includes(a.announcement_id));
+        bar.innerHTML = list.map(a => `<div class="announce ${a.level === 'critical' ? 'critical' : a.level === 'warning' ? 'warning' : ''}" role="status">
+            <i class="fas ${a.level === 'info' ? 'fa-info-circle' : 'fa-exclamation-triangle'}" aria-hidden="true"></i>
+            <span><strong>Genjutsu team:</strong> ${escHtml(a.message)}</span>
+            <button type="button" class="announce-x" aria-label="Hide this notice" onclick="hideAnnouncement('${escHtml(a.announcement_id)}')"><i class="fas fa-times"></i></button></div>`).join('');
+    } catch (_) { /* notices are optional */ }
+}
+function hideAnnouncement(id) {
+    try { const h = JSON.parse(localStorage.getItem('gj-ann-hidden') || '[]'); h.push(id); localStorage.setItem('gj-ann-hidden', JSON.stringify(h.slice(-30))); } catch (_) {}
+    loadAnnouncements();
+}
+
+
+// ── Organization / organization ───────────────────────────────────
+// Staff with the organization's email join automatically; others join with an invite link.
+async function joinPendingOrg() {
+    let code = null;
+    try { code = localStorage.getItem('gj-join'); localStorage.removeItem('gj-join'); } catch (_) {}
+    if (!code) return;
+    if (window.genjutsuDemo) { showToast('Invite link', "The demo account can't join an organization. Sign in with your own email.", 'warning'); return; }
+    try {
+        const r = await (await apiFetch(`${API_BASE}/api/account/org/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })).json();
+        if (!r.success) throw new Error(r.error);
+        showToast(r.already ? 'Already a member' : 'Joined', r.already ? `You're already part of ${r.name}.` : `You joined ${r.name}. Its admins can now see threats sent to you.`, 'success');
+    } catch (e) { showToast("Couldn't join", e.message, 'warning'); }
+}
+async function loadOrg() {
+    const sec = document.getElementById('orgSection'), box = document.getElementById('orgBox');
+    if (!sec || !box) return;
+    try {
+        const { org } = await (await apiFetch(`${API_BASE}/api/account/org`)).json();
+        sec.hidden = !org;
+        if (!org) return;
+        const how = { domain: 'because you use the organization email', invite: 'with an invite link', list: 'because your organization added your email', admin: 'added by an admin' }[org.org_joined] || '';
+        box.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'settings-note'; p.style.margin = '0 0 10px';
+        p.innerHTML = '<b></b> <span></span>';
+        p.querySelector('b').textContent = org.name;
+        p.querySelector('span').textContent = `· joined ${how}. Your organization's admins can see your scan results and the threats sent to you. They can't read your other emails.`;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-sm'; btn.type = 'button';
+        btn.innerHTML = '<i class="fas fa-door-open"></i> Leave';
+        btn.onclick = async () => {
+            if (!confirm(`Leave ${org.name}? You keep your own protection, and you won't be added back automatically.`)) return;
+            await apiFetch(`${API_BASE}/api/account/org/leave`, { method: 'POST' });
+            showToast('Left', `You left ${org.name}.`, 'success'); loadOrg();
+        };
+        box.append(p, btn);
+    } catch (_) { sec.hidden = true; }
+}

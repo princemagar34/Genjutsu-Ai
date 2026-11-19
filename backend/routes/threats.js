@@ -1,77 +1,54 @@
 // routes/threats.js — async PostgreSQL version
+const db = require('../database/db');
 const express                = require('express');
 const { requireAuth }        = require('../middleware/authMiddleware');
-const { fetchEmails, moveToSpam, createSpamFilter, removeFromSpam } = require('../services/gmailService');
+const { fetchEmails, moveToSpam, createSpamFilter, removeFromSpam } = require('../services/mail');   // Gmail, Outlook or IMAP
 const { scanEmails, analyseEmail } = require('../services/threatService');
 const { generateUserReport } = require('../services/reportService');
 const { getReportData, getThreatOverride, userOverrideThreatLevel, blockEmail, unblockEmail, getSystemSetting } = require('../database/db');
+const { getScanContext, getEmailSender, addSafeSender, removeSafeSender, logUserActivity } = require('../database/db');
 
 const router = express.Router();
 
+// ── GET /threats — every threat Genjutsu found for you (last 90 days) ──
+// Built from the saved scans, not by re-reading the inbox: quarantined emails sit in
+// spam and would otherwise vanish from the counts. Admin overrides and remarks apply.
+const { recordToEmail } = require('../services/threatRecords');
+
 router.get('/threats', requireAuth, async (req, res) => {
   try {
-    // ── Read max scan limit from admin System Settings ────────
-    const maxSetting = await getSystemSetting('max_emails_scan');
-    const scanLimit  = parseInt(maxSetting) || 150;
-    const emails     = await fetchEmails(req.session.user.accessToken, scanLimit);
-    const scanned = await Promise.all(emails.map(async email => {
-      try { return { ...email, threat: await analyseEmail(email) }; }
-      catch(e) { return { ...email, threat: { level:'safe', score:0, reasons:['Parse error'], mlResult:{}, nlpFeatures:{} } }; }
-    }));
+    const userId = req.session.user.id;
+    const days = Math.min(365, Math.max(1, parseInt(req.query.days) || 90));
+    let all;
+    if ((await db.countUserScans(userId)) > 0) {
+      all = (await db.getUserThreatRecords(userId, days)).map(recordToEmail);
+    } else {
+      // Nothing scanned yet (brand-new account): scan the inbox now
+      const scanLimit = parseInt(await getSystemSetting('max_emails_scan')) || 150;
+      const emails = await fetchEmails(req.session.user, scanLimit);
+      try { await require('../services/attachmentScanner').prepare(req.session.user, emails); } catch (e) { console.warn('[attachments]', e.message); }
+      const scanCtx = await getScanContext(userId);
+      all = await Promise.all(emails.map(async email => {
+        try { return { ...email, threat: await analyseEmail(email, scanCtx) }; }
+        catch (e) { return { ...email, threat: { level: 'safe', score: 0, reasons: ['Parse error'] } }; }
+      }));
+    }
+    const threats = all.filter(e => e.threat.level === 'dangerous' || e.threat.level === 'suspicious')
+      .sort((a, b) => (new Date(b.date || 0) - new Date(a.date || 0)) || (b.threat.score - a.threat.score));
 
-    // ── Merge admin overrides ─────────────────────────────────
-    // For each threat email, look up any admin override in the DB.
-    // If found: surface the overridden level and admin remark to the user.
-    // The override does NOT re-run the scanner — it just adjusts what the user sees.
-    const threatsRaw = scanned.filter(e => e.threat.level !== 'safe');
-    const threats = await Promise.all(threatsRaw.map(async email => {
-      try {
-        const override = await getThreatOverride(email.id);
-        if (override) {
-          return {
-            ...email,
-            // Expose override fields at the top level so the user portal can
-            // read them as email.adminRemark and email.overrideLevel
-            adminRemark:   override.note       || null,
-            overrideLevel: override.new_level  || null,
-            overriddenBy:  override.overridden_by || null,
-            overriddenAt:  override.overridden_at || null,
-            threat: {
-              ...email.threat,
-              // Also nest them inside threat so email.threat.adminRemark works
-              adminRemark:   override.note      || null,
-              overrideLevel: override.new_level || null,
-              // If admin changed the level, reflect it in the displayed level
-              level: override.new_level || email.threat.level,
-            }
-          };
-        }
-      } catch (_) {
-        // getThreatOverride failure should never break the whole response
-      }
-      return email;
-    }));
-
-    // Re-filter: if admin overrode a threat to 'safe', remove it from the list
-    const visibleThreats = threats
-      .filter(e => e.threat.level !== 'safe')
-      .sort((a, b) => {
-        // Sort by date descending (newest first)
-        const dateA = new Date(a.date || 0).getTime();
-        const dateB = new Date(b.date || 0).getTime();
-        if (dateB !== dateA) return dateB - dateA;
-        // Fallback: higher score first if same date
-        return b.threat.score - a.threat.score;
-      });
-
+    const count = (k) => threats.filter(e => (e.threat.subType || 'phishing') === k).length;
     res.json({
       success: true,
+      days,
       summary: {
-        total:      visibleThreats.length,
-        dangerous:  visibleThreats.filter(e => e.threat.level === 'dangerous').length,
-        suspicious: visibleThreats.filter(e => e.threat.level === 'suspicious').length
+        scanned:     all.length,
+        total:       threats.length,
+        dangerous:   threats.filter(e => e.threat.level === 'dangerous').length,
+        suspicious:  threats.filter(e => e.threat.level === 'suspicious').length,
+        quarantined: threats.filter(e => e.quarantined).length,
+        types: { phishing: count('phishing'), malware_link: count('malware_link'), spoofed_sender: count('spoofed_sender'), other: count('other') },
       },
-      threats: visibleThreats
+      threats,
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -80,16 +57,9 @@ router.get('/threats', requireAuth, async (req, res) => {
 
 router.get('/threats/summary', requireAuth, async (req, res) => {
   try {
-    const maxSetting2 = await getSystemSetting('max_emails_scan');
-    const emails      = await fetchEmails(req.session.user.accessToken, parseInt(maxSetting2) || 100);
-    const scanned = await scanEmails(emails);
-    res.json({
-      success:    true,
-      total:      scanned.length,
-      safe:       scanned.filter(e => e.threat.level === 'safe').length,
-      suspicious: scanned.filter(e => e.threat.level === 'suspicious').length,
-      dangerous:  scanned.filter(e => e.threat.level === 'dangerous').length
-    });
+    const rows = (await db.getUserThreatRecords(req.session.user.id, 90)).map(recordToEmail);
+    const lv = (l) => rows.filter(e => e.threat.level === l).length;
+    res.json({ success: true, total: rows.length, safe: lv('safe'), suspicious: lv('suspicious'), dangerous: lv('dangerous') });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -99,7 +69,9 @@ router.get('/threats/report', requireAuth, async (req, res) => {
   try {
     const user       = req.session.user;
     const reportData = await getReportData(user.id);
-    generateUserReport(res, user, reportData);
+    let response;
+    try { response = await require('../database/db').getResponseCounts(user.id); } catch (_) {}
+    generateUserReport(res, user, reportData, { response });
   } catch (err) {
     console.error('PDF report error:', err.message);
     res.status(500).json({ success: false, error: 'Could not generate report: ' + err.message });
@@ -119,7 +91,14 @@ router.post('/threats/:id/reclassify', requireAuth, async (req, res) => {
     // The frontend sends the raw Gmail message ID, so we construct the DB key here
     const dbEmailId = `${userId}-${req.params.id}`;
     await userOverrideThreatLevel(dbEmailId, newLevel, userId, note || '');
-    res.json({ success: true, message: `Email reclassified as ${newLevel}.` });
+    // Marking an email safe trusts its sender from now on; marking it a threat removes that trust
+    let trusted = null;
+    try {
+      const sender = await getEmailSender(dbEmailId);
+      if (sender) trusted = newLevel === 'safe' ? await addSafeSender(userId, sender) : (await removeSafeSender(userId, sender), null);
+    } catch (_) {}
+    await logUserActivity(userId, `Changed threat level to ${newLevel}`, trusted ? `trusted ${trusted}` : '');
+    res.json({ success: true, message: `Email reclassified as ${newLevel}.`, trustedSender: trusted });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -136,14 +115,15 @@ router.post('/emails/:id/block', requireAuth, async (req, res) => {
   const dbEmailId  = `${userId}-${gmailMsgId}`;
   try {
     // 1. Move to spam in Gmail
-    await moveToSpam(req.session.user.accessToken, gmailMsgId);
+    await moveToSpam(req.session.user, gmailMsgId);
     // 2. Create Gmail filter for future emails from this sender
     if (senderEmail) {
-      try { await createSpamFilter(req.session.user.accessToken, senderEmail); }
+      try { await createSpamFilter(req.session.user, senderEmail); }
       catch (_) { /* filter creation can fail if duplicate — non-critical */ }
     }
     // 3. Save to Genjutsu DB
     await blockEmail(userId, dbEmailId, gmailMsgId, senderEmail || '', subject || '');
+    await logUserActivity(userId, 'Blocked sender', `${subject || ''} — ${senderEmail || ''}`);
     res.json({ success: true, message: 'Email moved to spam and sender filtered.' });
   } catch (err) {
     console.error('[Block] Error:', err.message);
@@ -159,9 +139,10 @@ router.delete('/emails/:id/block', requireAuth, async (req, res) => {
   const dbEmailId  = `${userId}-${gmailMsgId}`;
   try {
     // Restore to inbox in Gmail
-    await removeFromSpam(req.session.user.accessToken, gmailMsgId);
+    await removeFromSpam(req.session.user, gmailMsgId);
     // Remove from Genjutsu DB
     await unblockEmail(userId, dbEmailId);
+    await logUserActivity(userId, 'Restored email to inbox', gmailMsgId);
     res.json({ success: true, message: 'Email restored to inbox.' });
   } catch (err) {
     console.error('[Unblock] Error:', err.message);

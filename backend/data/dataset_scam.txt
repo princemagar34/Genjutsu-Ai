@@ -1,0 +1,102 @@
+nepal|Dear customer your eSewa account will be blocked today. Complete your KYC update by sending your MPIN and OTP to our verification officer.
+nepal|eSewa notice: your wallet has been temporarily suspended due to incomplete KYC. Click the link and log in within 24 hours to reactivate.
+nepal|Khalti reward: you have won Rs 25,000 cashback in the Dashain offer. Share the 6 digit code sent to your phone to receive it.
+nepal|Your Khalti account shows unusual login. To stop it, reply with your PIN and the verification code we just sent.
+nepal|Nabil Bank alert: your mobile banking is locked. Verify your account at the secure portal below to avoid permanent closure.
+nepal|NIC Asia Bank: we detected a failed transaction. Update your debit card number, expiry and CVV on the link to receive the refund.
+nepal|Global IME Bank security team: your internet banking password expires today. Reset it now using the attached form.
+nepal|Ncell lucky draw: your number won a brand new iPhone and Rs 1 lakh. Pay Rs 2,500 processing fee to the agent eSewa ID to claim.
+nepal|NTC customer you are selected for free 50GB data. Click the link and enter your number and OTP to activate the gift.
+nepal|Daraz 11.11 mega prize: you won a motorbike. To deliver it, pay the registration and customs fee to the account below today.
+nepal|Congratulations your phone number won the Nepal Telecom anniversary bumper prize. Call our office and pay the tax to receive the money.
+nepal|Job in Dubai, salary 1.5 lakh per month, free visa and ticket. Send your passport copy and deposit Rs 30,000 for processing to confirm your seat.
+nepal|Korea EPS job guaranteed without exam. Limited seats. Pay the agent fee by Friday and send your citizenship and photo.
+nepal|Urgent hiring for Malaysia and Qatar. No experience needed. Deposit the medical and visa fee in this account and we will send the ticket.
+nepal|Canada work permit approved for your profile. Pay the embassy processing charge to the consultant account within 48 hours or lose the visa.
+nepal|DV lottery result: you have been selected. Pay the confirmation fee to our Kathmandu office account to book your interview.
+nepal|Scholarship approved for MBBS abroad. Only registration fee of Rs 15,000 needed today. Send it to the eSewa ID and your seat is confirmed.
+nepal|NEB result update: your marks were changed. Pay Rs 1,000 to the board officer to get your corrected marksheet before the deadline.
+nepal|Dear parent, school fee is overdue. Pay to the new account number below today to avoid your child being removed from class. Do not call the office.
+nepal|Nepal Police notice: a case has been filed against your number for illegal activity. Pay the fine online now or you will be arrested.
+nepal|Customs office: your parcel from abroad is held at the airport. Pay the clearance fee to the officer account to release it today.
+nepal|Your international parcel could not be delivered. Pay Rs 350 redelivery fee with your card at the link to reschedule.
+nepal|Invest Rs 10,000 in our forex trading group and get Rs 50,000 every week guaranteed. Join on WhatsApp now, limited slots.
+nepal|Crypto investment plan: double your money in 7 days. Send USDT to the wallet and our expert will manage your profit.
+nepal|Instant loan approved without documents. Pay the file charge to receive Rs 2 lakh in your account in 10 minutes.
+nepal|Your loan app account is overdue. Pay now or we will send your photos and contacts to your family and friends.
+nepal|Earn Rs 5,000 daily by liking YouTube videos from home. Pay a small joining fee to start the task and withdraw anytime.
+nepal|Part time online job: complete simple tasks on Telegram and earn commission. First deposit to unlock higher paying tasks.
+nepal|Mero Share account suspended. Update your DMAT and bank details at the link to receive your IPO allotment.
+nepal|IPO allotment confirmed. To transfer the shares, pay the CDS charge to this account and share your Mero Share password.
+nepal|Your citizenship verification is pending with the government. Submit your photo, citizenship number and OTP to avoid penalty.
+nepal|Electricity bill unpaid. Your connection will be cut tonight. Pay immediately through the link to the NEA officer.
+nepal|Fonepay refund of Rs 4,999 pending for your account. Enter your mobile banking username and password to receive it.
+nepal|Hi I am your relative, I am in trouble in the hospital and my phone is lost. Please send Rs 20,000 to this eSewa number urgently.
+nepal|I am stuck abroad and my wallet was stolen. Please send money to this account, I will return it next week. Do not tell anyone.
+nepal|Facebook Marketplace buyer: I already paid, click the link to receive the money into your bank account and enter your card details.
+nepal|Your Facebook page will be deleted for copyright violation. Verify ownership at the link within 24 hours.
+nepal|Dear student your college exam form is rejected. Pay the late fee to the account in this message today.
+nepal|Free laptop scheme for students by the government. Register with your citizenship and pay Rs 500 delivery charge.
+nepal|Gas cylinder subsidy for your household. Fill the form with your bank account and OTP to receive Rs 3,000.
+global|Your PayPal account has been limited. We noticed unusual activity. Please verify your account information within 24 hours.
+global|Microsoft 365: your mailbox storage is full and incoming messages will be deleted. Sign in to upgrade your quota.
+global|Your Office 365 password expires today. Keep your current password by confirming it at the link below.
+global|DocuSign: you have received a document to review and sign. Log in with your email account to view the document.
+global|Netflix: your payment was declined. Update your billing details to avoid suspension of your membership.
+global|Apple ID locked for security reasons. Confirm your identity to unlock your account and avoid permanent deletion.
+global|Amazon: your order could not be shipped because of a payment problem. Update your card at the link.
+global|DHL: your package is on hold. Confirm your address and pay the small customs fee to release the shipment.
+global|FedEx delivery attempt failed. Download the attached shipping label and open it to reschedule.
+global|IRS notice: you are eligible for a tax refund. Submit your social security number and bank details to claim it.
+global|HMRC: you are due a tax rebate. Click to claim your refund before it expires.
+global|Your bank account has been suspended due to suspicious activity. Log in immediately to restore access.
+global|We detected a sign-in from a new device. If this was not you, verify your account now or it will be locked.
+global|Google security alert: someone has your password. Reset it immediately using this link.
+global|WhatsApp will expire on your phone. Verify your number and pay to continue using the service.
+global|Instagram: your account will be disabled for violating community guidelines. Appeal within 24 hours here.
+global|Your Zoom account has been suspended. Sign in to reactivate and keep your meetings.
+global|LinkedIn: you appeared in 9 searches this week. Sign in with your email password to see who viewed your profile.
+global|Dropbox: a file was shared with you. Enter your email credentials to download the shared invoice.
+global|Your mailbox is almost full. Click here to verify your email and increase storage or your account will be closed.
+global|IT helpdesk: we are upgrading the email system. Reply with your username and password to keep your account active.
+global|Please find attached the invoice for payment. Kindly enable macros to view the document content.
+global|Overdue invoice attached. Payment must be made today to avoid legal action. Open the attached file for details.
+global|Payroll update: your salary details need confirmation. Log in to the employee portal to avoid a delayed payment.
+global|HR department: please review the attached salary revision letter and sign in to accept it.
+global|This is the CEO. I need you to buy gift cards for a client urgently. Send me the codes and keep this confidential.
+global|Are you available? I am in a meeting and need a favour. Please purchase Google Play gift cards and send me the codes.
+global|Please note our bank details have changed. Kindly send the payment for the outstanding invoice to the new account below.
+global|Urgent wire transfer needed today for a confidential acquisition. Do not discuss with anyone. I will explain later.
+global|Our supplier account has been updated. All future payments must go to the new IBAN shown in the attached letter.
+global|Congratulations you have won the international lottery of one million dollars. Send your details and processing fee to claim.
+global|I am a lawyer representing a deceased client with your surname. You are entitled to an inheritance of 4.5 million dollars.
+global|You have a pending crypto withdrawal. Connect your wallet and enter your recovery phrase to receive the funds.
+global|Coinbase: unusual withdrawal attempt blocked. Verify your wallet with your seed phrase to secure it.
+global|Your antivirus subscription has been renewed for 399 dollars. Call the support number to cancel and get a refund.
+global|We have hacked your device and recorded you. Pay in bitcoin within 48 hours or we will send the video to your contacts.
+global|Your computer is infected with a virus. Call Microsoft support immediately at the number below to fix it.
+global|Final notice: your domain name will expire. Renew now at the link to avoid losing your website.
+global|You have received a voice message. Listen to the voicemail by signing in with your Microsoft account.
+global|Scan the QR code to verify your multi factor authentication and keep access to your email account.
+global|Your account security needs attention. Scan the QR code with your phone to complete verification.
+global|Dear beneficiary, your compensation payment has been approved by the United Nations. Pay the transfer fee to receive it.
+global|Act now limited time offer. Claim your free gift card worth 500 dollars before it expires today.
+global|Your Steam account will be banned. Log in at the link to dispute the report from another player.
+global|Booking.com: your reservation will be cancelled. Confirm your card details within 12 hours.
+global|Airline refund available for your cancelled flight. Enter your card details to receive the money.
+global|We could not verify your identity. Your account access is restricted until you upload your ID and selfie.
+global|Your Amazon Prime membership will auto renew for 139 dollars. If you did not authorise this, cancel at the link.
+global|Shared document: Q4 bonus list. Sign in to view who received a bonus this year.
+global|Important: unpaid toll charge. Pay now to avoid a penalty and suspension of your licence.
+global|Your Netflix account was used in another country. Verify now to secure your profile.
+global|Dear user, your email has been selected for the annual email award of 850,000 dollars. Reply with your full name and address.
+global|Confirm your attendance at the board meeting by logging in with your corporate credentials at the link.
+global|Payment confirmation required: a charge of 1,299 dollars was made on your card. If this was not you, verify now.
+global|Your OneDrive files will be deleted in 24 hours. Sign in to keep them.
+global|Encrypted message received. Open the attachment and enable editing to read the secure message.
+nepal|Tapai ko eSewa khata block hudai cha. Turuntai KYC update garna MPIN ra OTP pathaunu hola.
+nepal|Badhai cha! Tapai le Ncell bumper prize jitnu bhayo. Rs 3,000 processing fee eSewa ma pathaunu hola.
+nepal|Tapai ko bank khata band hune bhayo. Link ma gayera password ra OTP halnu hola.
+nepal|Dubai ma kaam, talab 1 lakh. Visa ko lagi Rs 25,000 aaja nai pathaunu hola, seat limited cha.
+nepal|Tapai ko parcel customs ma rokiyeko cha. Fee tirna yo number ma eSewa garnu hola.
+nepal|Ma tapai ko aafanta ho, hospital ma chu. Turuntai Rs 15,000 yo Khalti ID ma pathaidinu na, kasailai nabhannu.

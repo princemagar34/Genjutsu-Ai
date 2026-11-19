@@ -6,8 +6,9 @@
 // ============================================================
 const natural = require('natural');
 
-const classifier = new natural.BayesClassifier();
+let classifier = new natural.BayesClassifier();
 let trained = false;
+let modelVersion = 'built-in';
 
 // ── Training data ─────────────────────────────────────────────
 // Phishing examples (label: 'phishing')
@@ -66,14 +67,17 @@ function trainModel() {
   trained = true;
 }
 
+// The model retrained from real data (services/modelTrainer.js) replaces the built-in one
+function setClassifier(c, version) { classifier = c; trained = true; modelVersion = version || 'custom'; }
+const getModelVersion = () => modelVersion;
+// Same cleaning for training and for checking, so both see the same words
+const cleanText = (text) => (text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
 // ── ML classification ─────────────────────────────────────────
 // Returns { label: 'phishing'|'safe', confidence: 0-1 }
 function classifyText(text) {
   trainModel();
-  const cleaned = (text || '').toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const cleaned = cleanText(text);
 
   if (!cleaned || cleaned.length < 10) {
     return { label: 'safe', confidence: 0.5 };
@@ -113,4 +117,4 @@ function extractNLPFeatures(text) {
   };
 }
 
-module.exports = { classifyText, extractNLPFeatures, trainModel };
+module.exports = { classifyText, extractNLPFeatures, trainModel, setClassifier, getModelVersion, cleanText, PHISHING_SAMPLES, SAFE_SAMPLES };

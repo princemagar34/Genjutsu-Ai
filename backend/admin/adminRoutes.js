@@ -1,116 +1,39 @@
 // admin/adminRoutes.js — Full RBAC async PostgreSQL version
 const express = require('express');
 const {
-  getAllUsers, getAllThreats, getSystemStats, getAdminTrendData,
-  getAdminByEmail, getAllAdmins, createAdmin,
-  updateAdminRole, updateAdminLastLogin, deleteAdmin, toggleAdminStatus,
-  addThreatReview, getThreatReview, getAllReviews,
-  logActivity, getActivityLog, getAdminActivityLog,
-  getSystemSetting, getAllSystemSettings, updateSystemSetting,
-  suspendUser, unsuspendUser, getSuspendedUsers,
-  overrideThreatLevel, getThreatOverride,
-  markAllAlertsRead, getAlerts,
-  getAllHoneypotSessions, endHoneypotSession,
+  getAdminByEmail, getAllAdmins, createAdmin, updateAdminRole, toggleAdminStatus, addThreatReview,
+  logActivity, getActivityLog, getAdminActivityLog, getAllSystemSettings, updateSystemSetting,
+  suspendUser, unsuspendUser, overrideThreatLevel, getAllHoneypotSessions, endHoneypotSession,
   updateHoneypotSession, getHoneypotSessionById, getHoneypotMessages
 } = require('../database/db');
 
 const router = express.Router();
 
-const PERMISSIONS = {
-  superadmin: [
-    'stats','users','threats','honeypot','export','settings',
-    'review','notes','dismiss','activity',
-    'admins','ml_settings','admin_activity','suspend_user','override_threat'
-  ],
-  moderator: [
-    'stats','users','threats','honeypot','export','settings',
-    'review','notes','dismiss','activity','override_threat'
-  ],
-  viewer: ['stats','users','threats','honeypot','export','settings']
-};
+const auth = require('./adminAuth');
+const { getIP, requireAdmin, can } = require('./adminCore');
+const ROLE_LABELS = require('./adminCore').ROLE_LABELS;
 
-const ROLE_LABELS = { superadmin: 'Super Admin', moderator: 'Moderator', viewer: 'Viewer' };
-
-function getIP(req) {
-  return req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
-}
-
-function requireAdmin(req, res, next) {
-  if (req.session?.admin?.loggedIn) return next();
-  res.status(403).json({ success: false, error: 'Admin access required.' });
-}
-
-function can(permission) {
-  return (req, res, next) => {
-    const role  = req.session?.admin?.role || 'viewer';
-    const perms = PERMISSIONS[role] || [];
-    if (perms.includes(permission)) return next();
-    res.status(403).json({ success: false, error: `Your role (${ROLE_LABELS[role]}) cannot perform this action.`, role, required: permission });
-  };
-}
-
-// ── POST /admin/api/login ─────────────────────────────────────
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ success: false, error: 'Email and password required.' });
-  try {
-    const admin = await getAdminByEmail(email);
-    if (!admin || admin.password !== password)
-      return res.status(401).json({ success: false, error: 'Invalid credentials.' });
-    if (!admin.is_active)
-      return res.status(403).json({ success: false, error: 'This account has been deactivated.' });
-
-    await updateAdminLastLogin(email);
-    await logActivity(email, admin.role, 'LOGIN', 'Admin logged in', getIP(req));
-
-    req.session.admin = {
-      loggedIn: true, adminId: admin.admin_id, email: admin.email,
-      name: admin.name || admin.email, role: admin.role,
-      roleLabel: ROLE_LABELS[admin.role] || admin.role,
-      permissions: PERMISSIONS[admin.role] || [],
-      isSuperAdmin: admin.role === 'superadmin'
-    };
-    res.json({ success: true, admin: req.session.admin });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-// ── POST /admin/api/logout ────────────────────────────────────
-router.post('/logout', requireAdmin, async (req, res) => {
-  await logActivity(req.session.admin.email, req.session.admin.role, 'LOGOUT', 'Admin logged out', getIP(req));
-  req.session.admin = null;
-  res.json({ success: true });
-});
-
-// ── GET /admin/api/me ─────────────────────────────────────────
-router.get('/me', (req, res) => {
-  if (req.session?.admin?.loggedIn) return res.json({ loggedIn: true, admin: req.session.admin });
-  res.json({ loggedIn: false });
-});
+// Sign-in, sign-out and your own account live in adminLogin.js
+router.use(require('./adminLogin'));
+// Queue, attackers, block list, users, approvals, health, reports …
+const extra = require('./adminExtra');
+router.use(extra);
+router.use(require('./adminOrgs'));
 
 // ── GET /admin/api/stats ──────────────────────────────────────
-router.get('/stats', requireAdmin, can('stats'), async (req, res) => {
-  try { res.json({ success: true, stats: await getSystemStats() }); }
+router.get('/stats', requireAdmin, require('./orgScope').viewOrg, can('stats'), async (req, res) => {
+  try { res.json({ success: true, stats: await require('../database/adminDb').systemStats() }); }
   catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ── GET /admin/api/trend ──────────────────────────────────────
 // Returns real per-day threat/safe counts for the Threat Trend chart.
 // Replaces the fake estimate previously calculated in the frontend.
-router.get('/trend', requireAdmin, can('stats'), async (req, res) => {
+router.get('/trend', requireAdmin, require('./orgScope').viewOrg, can('stats'), async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
-    const trend = await getAdminTrendData(days);
+    const trend = await require('../database/adminDb').trend(Math.min(90, Math.max(1, days)));
     res.json({ success: true, trend });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-// ── GET /admin/api/users ──────────────────────────────────────
-router.get('/users', requireAdmin, can('users'), async (req, res) => {
-  try {
-    const users     = await getAllUsers();
-    const suspended = (await getSuspendedUsers()).map(s => s.user_id);
-    res.json({ success: true, users: users.map(u => ({ ...u, is_suspended: suspended.includes(u.user_id) })) });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -135,23 +58,11 @@ router.post('/users/:id/unsuspend', requireAdmin, can('suspend_user'), async (re
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// ── GET /admin/api/threats ────────────────────────────────────
-router.get('/threats', requireAdmin, can('threats'), async (req, res) => {
-  try {
-    const limit    = parseInt(req.query.limit) || 200;
-    const threats  = await getAllThreats(limit);
-    const reviews  = await getAllReviews();
-    const reviewMap = {};
-    reviews.forEach(r => { reviewMap[r.email_id] = r; });
-    res.json({ success: true, threats: threats.map(t => ({ ...t, review: reviewMap[t.email_id] || null })) });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
 // ── GET /admin/api/blocked ────────────────────────────────────
 // Returns all emails flagged as phishing (is_phishing=1),
 // enriched with threat_type from scan_results and override info.
 // This is the admin-side equivalent of the user "Threats Blocked" counter.
-router.get('/blocked', requireAdmin, can('threats'), async (req, res) => {
+router.get('/blocked', requireAdmin, require('./orgScope').viewOrg, can('threats'), async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 500;
     const { query } = require('../database/db');
@@ -163,7 +74,7 @@ router.get('/blocked', requireAdmin, can('threats'), async (req, res) => {
         e.sender_email, e.subject, e.received_date,
         e.confidence_score, e.scanned_at,
         e.spf_result, e.dkim_result, e.dmarc_result, e.has_attachment,
-        sr.threat_type, sr.details,
+        sr.threat_type, sr.details, sr.origin_country, sr.mitre,
         ov.new_level     AS override_level,
         ov.note          AS override_note,
         ov.overridden_by, ov.overridden_at
@@ -173,12 +84,12 @@ router.get('/blocked', requireAdmin, can('threats'), async (req, res) => {
                confidence_score, scanned_at, gmail_message_id,
                spf_result, dkim_result, dmarc_result, has_attachment
         FROM emails
-        WHERE is_phishing = 1 AND gmail_message_id IS NOT NULL
+        WHERE is_phishing = 1 AND gmail_message_id IS NOT NULL AND ${require('./orgScope').realUser('user_id')}
         ORDER BY gmail_message_id, user_id, scanned_at DESC
       ) e
       LEFT JOIN users u ON e.user_id = u.user_id
       LEFT JOIN LATERAL (
-        SELECT threat_type, details
+        SELECT threat_type, details, origin_country, mitre
         FROM scan_results
         WHERE email_id = e.email_id
         ORDER BY scan_timestamp DESC LIMIT 1
@@ -225,6 +136,8 @@ router.get('/blocked', requireAdmin, can('threats'), async (req, res) => {
         dkim:          r.dkim_result,
         dmarc:         r.dmarc_result,
         hasAttachment: !!r.has_attachment,
+        country:       r.origin_country || null,
+        mitre:         (() => { try { return JSON.parse(r.mitre || '[]'); } catch { return []; } })(),
         overrideLevel: r.override_level || null,
         overrideNote:  r.override_note  || null,
         overriddenBy:  r.overridden_by  || null,
@@ -303,8 +216,8 @@ router.put('/settings', requireAdmin, can('settings'), async (req, res) => {
   if (!key || value === undefined)
     return res.status(400).json({ success: false, error: 'key and value required.' });
   const mlKeys = ['threat_score_dangerous','threat_score_suspicious'];
-  if (mlKeys.includes(key) && req.session.admin.role !== 'superadmin')
-    return res.status(403).json({ success: false, error: 'Only Super Admin can change ML threat score thresholds.' });
+  // Score thresholds change every user's verdicts: they go through approvals
+  if (mlKeys.includes(key)) return extra.startAction(req, res, 'set_threshold', { key, value });
   try {
     await updateSystemSetting(key, String(value), req.session.admin.email);
     await logActivity(req.session.admin.email, req.session.admin.role, 'SETTINGS_CHANGED', `Setting "${key}" changed to "${value}"`, getIP(req));
@@ -315,7 +228,7 @@ router.put('/settings', requireAdmin, can('settings'), async (req, res) => {
 // ── GET /admin/api/admins ─────────────────────────────────────
 router.get('/admins', requireAdmin, can('admins'), async (req, res) => {
   try {
-    const admins = (await getAllAdmins()).map(({ password, ...rest }) => rest);
+    const admins = (await getAllAdmins()).map(({ password, totp_secret, recovery_codes, ...rest }) => rest);
     res.json({ success: true, admins });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -325,13 +238,18 @@ router.post('/admins', requireAdmin, can('admins'), async (req, res) => {
   const { email, password, role, name } = req.body;
   if (!email || !password)
     return res.status(400).json({ success: false, error: 'Email and password required.' });
+  const pwProblem = auth.passwordProblem(password);
+  if (pwProblem) return res.status(400).json({ success: false, error: pwProblem });
   if (!['viewer','moderator'].includes(role))
     return res.status(400).json({ success: false, error: 'Role must be viewer or moderator.' });
   try {
     if (await getAdminByEmail(email))
       return res.status(409).json({ success: false, error: 'Admin with this email already exists.' });
-    const id = await createAdmin({ email, password, role, name: name || email.split('@')[0], createdBy: req.session.admin.email });
-    await logActivity(req.session.admin.email, req.session.admin.role, 'ADMIN_CREATED', `Created admin: ${email} with role ${role}`, getIP(req));
+    // orgId set = an organization admin who only sees that organization
+    const orgId = req.body.orgId || null;
+    if (orgId && !await require('../services/orgs').get(orgId)) return res.status(400).json({ success: false, error: 'Organization not found.' });
+    const id = await createAdmin({ email, password: auth.hashPassword(password), role, name: name || email.split('@')[0], createdBy: req.session.admin.email, orgId });
+    await logActivity(req.session.admin.email, req.session.admin.role, 'ADMIN_CREATED', `Created admin: ${email} with role ${role}${orgId ? ' for ' + orgId : ''}`, getIP(req));
     res.json({ success: true, adminId: id });
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
@@ -372,16 +290,15 @@ router.delete('/admins/:id', requireAdmin, can('admins'), async (req, res) => {
     const target = admins.find(a => a.admin_id === req.params.id);
     if (!target) return res.status(404).json({ success: false, error: 'Admin not found.' });
     if (target.role === 'superadmin') return res.status(403).json({ success: false, error: 'Cannot delete Super Admin.' });
-    await deleteAdmin(req.params.id);
-    await logActivity(req.session.admin.email, req.session.admin.role, 'ADMIN_DELETED', `Deleted admin: ${target.email}`, getIP(req));
-    res.json({ success: true });
+    return extra.startAction(req, res, 'delete_admin', { adminId: req.params.id });   // needs a second admin when there is one
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ── GET /admin/api/honeypot/sessions ─────────────────────────
 router.get('/honeypot/sessions', requireAdmin, can('honeypot'), async (req, res) => {
   try {
-    const sessions = await getAllHoneypotSessions();
+    const inOrg = await require('./orgScope').scopedUserIds();   // null for the Super Admin
+    const sessions = (await getAllHoneypotSessions()).filter(s => !String(s.user_id || '').startsWith('demo-') && (!inOrg || inOrg.has(s.user_id)));   // demo chats aren't real
     const now = Date.now();
     const enriched = sessions.map(s => {
       const startedAt   = s.started_at ? new Date(s.started_at).getTime() : now;
@@ -422,6 +339,10 @@ router.delete('/honeypot/sessions/:sessionId', requireAdmin, can('review'), asyn
 // ── GET /admin/api/honeypot/sessions/:id/messages ────────────
 router.get('/honeypot/sessions/:sessionId/messages', requireAdmin, can('honeypot'), async (req, res) => {
   try {
+    if (require('./orgScope').currentOrg()) {
+      const s = await getHoneypotSessionById(req.params.sessionId);
+      if (!s || !await require('./orgScope').userInScope(s.user_id)) return res.status(404).json({ success: false, error: 'Not found' });
+    }
     const messages = await getHoneypotMessages(req.params.sessionId);
     res.json({ success: true, messages: messages.map(m => ({
       id:          m.message_id,

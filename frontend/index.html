@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Genjutsu — Gmail Security System</title>
+    <title>Genjutsu — Email Security System</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
     <link rel="stylesheet" href="styles.css">
+    <script>
+        // Apply the saved light/dark choice before the page draws, so it never flashes the wrong theme
+        try { document.documentElement.dataset.theme = localStorage.getItem('gj-theme') || 'dark'; }
+        catch (e) { document.documentElement.dataset.theme = 'dark'; }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -21,79 +28,106 @@
 
     <!-- ==================== UNIFIED LOGIN PORTAL ==================== -->
     <div id="loginScreen">
+        <button class="theme-btn login-theme-btn" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+            <i class="fas fa-sun" aria-hidden="true"></i>
+        </button>
 
-        <!-- Left panel — branding -->
-        <div class="login-left">
-            <div class="login-brand">
-                <div class="login-brand-icon">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <h1>Genjutsu</h1>
-                <p>Gmail Security System</p>
+        <!-- Left panel — what Genjutsu is -->
+        <div class="login-left ed-left">
+            <div class="ed-brand"><i class="fas fa-shield-alt" aria-hidden="true"></i> Genjutsu</div>
+            <div class="ed-hero">
+                <p class="ed-eyebrow">Email security for organizations and small teams</p>
+                <h1 class="ed-title">Spot the phish before it spots you.</h1>
+                <p class="ed-lead">Genjutsu reads every email the way a security analyst would, then tells you in plain words which ones to trust.</p>
             </div>
-
-            <div class="login-features">
-                <div class="login-feature">
-                    <div class="feature-icon"><i class="fas fa-envelope-open-text"></i></div>
-                    <div>
-                        <strong>Real-time Inbox Scanning</strong>
-                        <span>Every email scanned as it arrives</span>
-                    </div>
-                </div>
-                <div class="login-feature">
-                    <div class="feature-icon"><i class="fas fa-brain"></i></div>
-                    <div>
-                        <strong>AI + ML Threat Detection</strong>
-                        <span>Naive Bayes classifier + NLP analysis</span>
-                    </div>
-                </div>
-                <div class="login-feature">
-                    <div class="feature-icon"><i class="fas fa-bug"></i></div>
-                    <div>
-                        <strong>Honeypot Mode</strong>
-                        <span>Automatically waste scammers' time</span>
-                    </div>
-                </div>
-                <div class="login-feature">
-                    <div class="feature-icon"><i class="fas fa-file-pdf"></i></div>
-                    <div>
-                        <strong>PDF Security Reports</strong>
-                        <span>Generate per-account threat reports</span>
-                    </div>
-                </div>
+            <div class="ed-stats">
+                <div><strong>9</strong><span>checks on every email</span></div>
+                <div><strong>&lt;1s</strong><span>to scan a message</span></div>
+                <div><strong>4</strong><span>mail providers supported</span></div>
             </div>
-
         </div>
 
         <!-- Right panel — forms -->
         <div class="login-right">
             <div class="login-card">
 
-                <div class="portal-header">
-                    <div class="portal-icon"><i class="fas fa-shield-alt"></i></div>
-                    <h2>Welcome Back</h2>
-                    <p>Sign in to protect your Gmail inbox</p>
+                <div class="ed-head">
+                    <h2>Welcome back</h2>
+                    <p>Sign in with the mailbox you want to protect.</p>
                 </div>
 
                 <!-- USER PANEL ONLY -->
                 <div id="panelUser" class="login-panel active">
-                    <p class="panel-desc">
-                        Sign in with your Google account to scan your Gmail inbox for phishing and other threats.
-                    </p>
-                    <div class="user-perms">
-                        <div class="perm-item"><i class="fas fa-check-circle"></i> Scan inbox for phishing</div>
-                        <div class="perm-item"><i class="fas fa-check-circle"></i> Multi-layer threat detection</div>
-                        <div class="perm-item"><i class="fas fa-check-circle"></i> Engage scammers with honeypot</div>
-                        <div class="perm-item"><i class="fas fa-check-circle"></i> Download PDF security report</div>
-                    </div>
-                    <a href="/auth/google" class="btn-google">
-                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" width="20">
+                    <a href="/auth/google" data-auth-path="/auth/google" class="btn-google">
+                        <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                         Continue with Google
                     </a>
-                    <p class="login-note">
-                        <i class="fas fa-lock"></i>
-                        Your Gmail data is never stored beyond your session.
+                    <div class="login-divider"><span>or sign in with</span></div>
+
+                    <!-- Other providers as bubbles -->
+                    <div class="provider-bubbles" role="group" aria-label="Other email providers">
+                        <a href="/auth/microsoft" data-auth-path="/auth/microsoft" class="provider-bubble bubble-outlook" title="Outlook, Hotmail, Live or Microsoft 365">
+                            <span class="bubble-icon"><i class="fab fa-microsoft"></i></span>
+                            <span class="bubble-label">Outlook</span>
+                        </a>
+                        <button type="button" class="provider-bubble bubble-icloud" data-imap-provider="icloud" title="iCloud Mail">
+                            <span class="bubble-icon"><i class="fab fa-apple"></i></span>
+                            <span class="bubble-label">iCloud</span>
+                        </button>
+                        <button type="button" class="provider-bubble bubble-yahoo" data-imap-provider="yahoo" title="Yahoo Mail">
+                            <span class="bubble-icon"><i class="fab fa-yahoo"></i></span>
+                            <span class="bubble-label">Yahoo</span>
+                        </button>
+                        <button type="button" class="provider-bubble bubble-more" data-imap-provider="more" title="AOL, Zoho, GMX, Yandex or your own domain">
+                            <span class="bubble-icon"><i class="fas fa-ellipsis-h"></i></span>
+                            <span class="bubble-label">More</span>
+                        </button>
+                    </div>
+
+                    <!-- App-password sign-in (opens when iCloud, Yahoo or More is clicked) -->
+                    <form id="imapLoginForm" class="imap-form" style="display:none;" autocomplete="on" novalidate>
+                        <div class="imap-form-head">
+                            <span id="imapTitle">Sign in</span>
+                            <button type="button" class="imap-close" id="imapClose" aria-label="Close">&times;</button>
+                        </div>
+                        <div class="form-field" id="imapProviderField">
+                            <label for="imapProvider"><i class="fas fa-server"></i> Email provider</label>
+                            <select id="imapProvider">
+                                <option value="aol">AOL Mail</option>
+                                <option value="zoho">Zoho Mail</option>
+                                <option value="gmx">GMX Mail</option>
+                                <option value="yandex">Yandex Mail</option>
+                                <option value="custom">Other (enter server details)</option>
+                                <option value="icloud" hidden>iCloud Mail</option>
+                                <option value="yahoo" hidden>Yahoo Mail</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="imapEmail"><i class="fas fa-envelope"></i> Email address</label>
+                            <input type="email" id="imapEmail" placeholder="you@example.com" autocomplete="username" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="imapPassword"><i class="fas fa-key"></i> App password</label>
+                            <input type="password" id="imapPassword" placeholder="App password, not your normal password" autocomplete="current-password" required>
+                        </div>
+                        <p class="imap-help" id="imapHelp"></p>
+                        <div id="imapCustomFields" class="imap-custom" style="display:none;">
+                            <div class="form-field"><label for="imapHost">IMAP server</label><input type="text" id="imapHost" placeholder="imap.example.com"></div>
+                            <div class="form-field"><label for="imapPort">IMAP port</label><input type="number" id="imapPort" value="993"></div>
+                            <div class="form-field"><label for="smtpHost">SMTP server</label><input type="text" id="smtpHost" placeholder="smtp.example.com"></div>
+                            <div class="form-field"><label for="smtpPort">SMTP port</label><input type="number" id="smtpPort" value="465"></div>
+                        </div>
+                        <div class="admin-login-error" id="imapError"></div>
+                        <button type="submit" class="btn-admin-login" id="imapSubmit">
+                            <i class="fas fa-sign-in-alt"></i> Sign in
+                        </button>
+                    </form>
+                    <button type="button" class="ed-demo" id="demoLogin"><i class="fas fa-flask" aria-hidden="true"></i> Try a demo with sample emails <span>no sign-in</span></button>
+                    <p class="login-note ed-note">
+                        <i class="fas fa-lock" aria-hidden="true"></i>
+                        Secure sign-in · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms</a>
                     </p>
+                    <p class="ed-consent">By signing in you agree to the <a href="/terms.html">Terms</a> and confirm you have read the <a href="/privacy.html">Privacy Policy</a>.</p>
                 </div>
 
             </div>
@@ -104,7 +138,7 @@
     <div id="mainApp" style="display:none;">
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="appNav" aria-label="Main menu">
             <div class="logo">
                 <i class="fas fa-shield-alt"></i>
                 <h2>Genjutsu</h2>
@@ -147,13 +181,19 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
+            <div id="announceBar" aria-live="polite"></div>
+            <div class="demo-banner" id="demoBanner" hidden>
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                <span><strong>Demo mode.</strong> These are sample emails. Nothing is sent and nothing reaches a real mailbox.</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="logout()">Exit demo</button>
+            </div>
             <!-- Sidebar overlay for mobile -->
-            <div class="sidebar-overlay" id="sidebarOverlay" onclick="document.querySelector('.sidebar').classList.remove('active');this.classList.remove('active')"></div>
+            <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
-                    <button class="menu-toggle">
-                        <i class="fas fa-bars"></i>
+                    <button class="menu-toggle nav-bubble" id="navBubble" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="appNav">
+                        <i class="fas fa-bars" aria-hidden="true"></i>
                     </button>
                     <h1 class="page-title">Dashboard</h1>
                 </div>
@@ -162,6 +202,9 @@
                         <i class="fas fa-search"></i>
                         <input type="text" placeholder="Search emails..." id="searchInput">
                     </div>
+                    <button class="theme-btn" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+                        <i class="fas fa-sun" aria-hidden="true"></i>
+                    </button>
                     <button class="notification-btn" id="notificationBtn">
                         <i class="fas fa-bell"></i>
                         <span class="badge" id="notifBadge" style="display:none">0</span>
@@ -227,6 +270,23 @@
                     </div>
                 </div>
 
+                <div class="insights-strip" id="insightsStrip" aria-label="Response this month">
+                    <div><strong id="insQuarantined">0</strong><span>quarantined</span></div>
+                    <div><strong id="insBlocked">0</strong><span>blocked by you</span></div>
+                    <div><strong id="insReported">0</strong><span>reported to APWG</span></div>
+                    <div><strong id="insHoneypot">0 min</strong><span>scammer time wasted</span></div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="card-header"><h3>What triggers alerts</h3><span class="card-sub">last 30 days</span></div>
+                        <div class="chart-container"><canvas id="checksChart" role="img" aria-label="Which warning signs were found most often"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="card-header"><h3>Riskiest sending domains</h3><span class="card-sub">flagged emails</span></div>
+                        <div class="chart-container"><canvas id="domainsChart" role="img" aria-label="Sending domains with the most flagged emails"></canvas></div>
+                    </div>
+                </div>
+
                 <div class="recent-threats">
                     <div class="card-header">
                         <h3>Recent Threats Detected</h3>
@@ -244,23 +304,28 @@
             <!-- EMAIL MONITORING PAGE -->
             <section id="emails-page" class="page-content">
                 <div class="email-monitoring">
-                    <div class="monitoring-controls">
-                        <button class="btn btn-primary" id="scanNow">
-                            <i class="fas fa-sync-alt"></i> Scan Now
+                    <div class="page-intro">
+                        <div>
+                            <h2>Your inbox</h2>
+                            <p><span id="inboxAccountLine">Every email is checked for phishing as it arrives.</span> · <span class="email-count-info" id="emailCountInfo">— emails loaded</span></p>
+                        </div>
+                        <button class="btn btn-primary btn-pill" id="scanNow">
+                            <i class="fas fa-sync-alt"></i> Scan now
                         </button>
-                        <div class="filter-group">
-                            <button class="filter-btn active" data-filter="all">All</button>
-                            <button class="filter-btn" data-filter="safe">Safe</button>
-                            <button class="filter-btn" data-filter="suspicious">Suspicious</button>
-                            <button class="filter-btn" data-filter="dangerous">Dangerous</button>
+                    </div>
+                    <div class="monitoring-controls">
+                        <div class="filter-group" role="group" aria-label="Show">
+                            <button class="filter-btn active" data-filter="all">Everything</button>
+                            <button class="filter-btn" data-filter="dangerous"><span class="filter-dot dangerous" aria-hidden="true"></span>Dangerous</button>
+                            <button class="filter-btn" data-filter="suspicious"><span class="filter-dot suspicious" aria-hidden="true"></span>Worth a look</button>
+                            <button class="filter-btn" data-filter="safe"><span class="filter-dot safe" aria-hidden="true"></span>Safe</button>
                             <button class="filter-btn" data-filter="blocked">Blocked</button>
                         </div>
-                        <div class="email-count-info" id="emailCountInfo">— emails loaded</div>
                     </div>
                     <div class="email-list" id="emailList">
                         <div class="loading-state">
                             <i class="fas fa-spinner fa-spin"></i>
-                            <p>Loading emails from Gmail...</p>
+                            <p>Loading emails from your inbox...</p>
                         </div>
                     </div>
                 </div>
@@ -272,11 +337,19 @@
                     <div class="threats-header">
                         <div class="threats-summary">
                             <h2>Threat Analysis</h2>
-                            <p>Comprehensive overview of detected security threats</p>
+                            <p id="threatsSubtitle">Every threat Genjutsu found in your mail</p>
                         </div>
-                        <button class="btn btn-primary" id="exportReport">
-                            <i class="fas fa-download"></i> Export Report
-                        </button>
+                        <div class="threats-header-actions">
+                            <button class="btn btn-secondary" type="button" onclick="exportIocs('csv')" title="Malicious domains, URLs, IPs and senders as CSV">
+                                <i class="fas fa-file-csv"></i> Export IOCs (CSV)
+                            </button>
+                            <button class="btn btn-secondary" type="button" onclick="exportIocs('json')" title="Same indicators as JSON, for a SIEM">
+                                <i class="fas fa-code"></i> JSON
+                            </button>
+                            <button class="btn btn-primary" id="exportReport">
+                                <i class="fas fa-download"></i> Export Report
+                            </button>
+                        </div>
                     </div>
 
                     <div class="threat-categories">
@@ -288,7 +361,7 @@
                         </div>
                         <div class="category-card malware">
                             <i class="fas fa-virus"></i>
-                            <h3>Malware Links</h3>
+                            <h3>Malware <small>(links &amp; files)</small></h3>
                             <p class="category-count" id="catMalware">—</p>
                             <span class="category-percentage" id="catMalwarePct">—</span>
                         </div>
@@ -318,57 +391,110 @@
             <!-- HONEYPOT PAGE -->
             <section id="honeypot-page" class="page-content">
                 <div class="honeypot-container">
-                    <div class="honeypot-header">
+                    <div class="page-intro">
                         <div>
-                            <h2>Honeypot Mode</h2>
-                            <p>Automated scammer engagement system</p>
+                            <h2>Honeypot</h2>
+                            <p>Nami replies to scammers in your name and keeps them busy, so they waste time on her instead of real victims.</p>
                         </div>
+                        <div class="hp-controls">
+                        <label class="hp-persona">
+                            <span>Nami plays</span>
+                            <select id="hpPersona" onchange="savePersona(this.value)" aria-label="Who Nami pretends to be">
+                                <option value="teacher">Retired teacher, 72</option>
+                                <option value="student">University student</option>
+                                <option value="shopkeeper">Busy shop owner</option>
+                                <option value="office">Office manager</option>
+                            </select>
+                        </label>
                         <div class="honeypot-toggle">
+                            <span class="hp-toggle-title" id="hpModeTitle">Honeypot mode</span>
+                            <span class="toggle-label" id="honeypotLabel">Inactive</span>
                             <label class="switch">
-                                <input type="checkbox" id="honeypotSwitch">
+                                <input type="checkbox" id="honeypotSwitch" aria-labelledby="hpModeTitle">
                                 <span class="slider"></span>
                             </label>
-                            <span class="toggle-label" id="honeypotLabel">Inactive</span>
+                        </div>
                         </div>
                     </div>
 
                     <div class="honeypot-stats">
                         <div class="honeypot-stat">
-                            <i class="fas fa-comments"></i>
-                            <div>
-                                <h4>Active Conversations</h4>
-                                <p class="stat-value" id="hpActiveSessions">0</p>
-                            </div>
+                            <h4>Active conversations</h4>
+                            <p class="stat-value" id="hpActiveSessions">0</p>
                         </div>
                         <div class="honeypot-stat">
-                            <i class="fas fa-clock"></i>
-                            <div>
-                                <h4>Total Time Wasted</h4>
-                                <p class="stat-value" id="hpTimeWasted">0 min</p>
-                            </div>
+                            <h4>Scammer time wasted</h4>
+                            <p class="stat-value" id="hpTimeWasted">0 min</p>
                         </div>
                         <div class="honeypot-stat">
-                            <i class="fas fa-user-shield"></i>
-                            <div>
-                                <h4>Scammers Detected</h4>
-                                <p class="stat-value" id="hpVictims">0</p>
-                            </div>
+                            <h4>Scammers detected</h4>
+                            <p class="stat-value" id="hpVictims">0</p>
                         </div>
                     </div>
 
-                    <div class="active-honeypots">
-                        <div class="card-header">
-                            <h3>Active Honeypot Sessions</h3>
-                            <button class="btn btn-primary btn-sm" id="refreshSessions">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
-                        </div>
-                        <div class="honeypot-list" id="honeypotSessionsList">
-                            <div class="empty-state">
-                                <i class="fas fa-bug"></i>
-                                <p>No active sessions. Enable Honeypot Mode and engage a scammer email.</p>
+                    <div class="hp-columns">
+                        <div class="hp-main">
+                            <div class="active-honeypots hp-card">
+                                <div class="card-header">
+                                    <div>
+                                        <h3>Conversations</h3>
+                                        <p class="hp-sub">Every scammer reply is logged here and answered again in the same thread.</p>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" id="refreshSessions">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                                <div class="honeypot-list" id="honeypotSessionsList">
+                                    <div class="empty-state">
+                                        <i class="fas fa-bullseye"></i>
+                                        <p>No conversations yet. Turn on honeypot mode, then engage a dangerous email.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="hp-card hp-board">
+                                <h3>Time-wasted leaderboard</h3>
+                                <div class="hp-board-top">
+                                    <div><strong id="hpMonthMinutes">0 min</strong><span>wasted this month</span></div>
+                                    <div><strong id="hpMostReplies">0</strong><span>most replies in one conversation</span></div>
+                                </div>
+                                <ol class="hp-board-list" id="hpBoardList"><li class="empty">No conversations yet.</li></ol>
+                            </div>
+
+                            <div class="hp-card hp-intel">
+                                <div class="card-header">
+                                    <div>
+                                        <h3>Scammer intel</h3>
+                                        <p class="hp-sub">Details scammers gave away while talking to Nami: bank accounts, wallets, phone numbers and links. Useful for reporting them.</p>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm" type="button" onclick="exportIntel()"><i class="fas fa-download"></i> Export</button>
+                                </div>
+                                <div id="hpIntel"><p class="hp-sub">Nothing collected yet.</p></div>
+                            </div>
+
+                            <div class="hp-card hp-how">
+                                <h3>How it works</h3>
+                                <ol>
+                                    <li><span>1</span>You engage a dangerous email from the Threats page.</li>
+                                    <li><span>2</span>Nami writes a believable reply that asks questions and adds complications.</li>
+                                    <li><span>3</span>Each time the scammer writes back, the reply is logged and answered in the same thread.</li>
+                                </ol>
+                                <button class="btn btn-primary btn-pill btn-sm" type="button" onclick="document.querySelector('.nav-item[data-page=&quot;threats&quot;]').click()">
+                                    Choose a dangerous email
+                                </button>
                             </div>
                         </div>
+
+                        <aside class="hp-card hp-example" aria-labelledby="hpExampleTitle">
+                            <div class="hp-example-head">
+                                <h3 id="hpExampleTitle">What a session looks like</h3>
+                                <span class="hp-tag">Example</span>
+                            </div>
+                            <div class="hp-bubble in"><b>Scammer</b>Your account is suspended. Verify your password within 24 hours.</div>
+                            <div class="hp-bubble out"><b>Nami (as you)</b>Oh no! Which account is this? I have three and my nephew set them up. Can you tell me the last four digits you have on file?</div>
+                            <div class="hp-bubble in"><b>Scammer</b>Just click the link and log in, sir.</div>
+                            <p class="hp-sub">Replies are written by AI and fall back to built-in scripts if the AI is unavailable. No-reply senders are never answered.</p>
+                        </aside>
                     </div>
                 </div>
             </section>
@@ -376,82 +502,242 @@
             <!-- SETTINGS PAGE -->
             <section id="settings-page" class="page-content">
                 <div class="settings-container">
-                    <h2>Settings</h2>
-                    <div class="settings-section">
-                        <h3>Gmail Account</h3>
-                        <div class="gmail-status" id="gmailStatus">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="gmailConnectedEmail">Connecting...</span>
-                        </div>
-                        <button class="btn btn-secondary" id="reconnectGmail">
-                            <i class="fas fa-sync-alt"></i> Reconnect Gmail
-                        </button>
-                        <button class="btn btn-danger" style="margin-left:12px;" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
+                    <div class="settings-head">
+                        <h2>Settings</h2>
+                        <p>Changes save automatically.</p>
                     </div>
-                    <div class="settings-section">
-                        <h3>Notification Preferences</h3>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Real-time Alerts</h4>
-                                <p>Get instant notifications for detected threats</p>
+
+                    <div class="settings-section settings-account">
+                        <h3>Connected mailbox</h3>
+                        <div class="account-row">
+                            <div class="account-icon" aria-hidden="true"><i class="fas fa-envelope"></i></div>
+                            <div class="account-info">
+                                <div class="account-email" id="gmailConnectedEmail">Connecting...</div>
+                                <div class="account-status" id="gmailStatus">
+                                    <span class="status-dot" aria-hidden="true"></span>
+                                    <span id="accountProviderLabel">Checking connection…</span>
+                                </div>
                             </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="realTimeAlerts" checked>
-                                <span class="slider"></span>
-                            </label>
+                            <button class="btn btn-secondary btn-sm" id="reconnectGmail">
+                                <i class="fas fa-sync-alt"></i> Reconnect
+                            </button>
+                            <button class="btn btn-danger-outline btn-sm" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Sign out
+                            </button>
                         </div>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Sound Alerts</h4>
-                                <p>Play sound when new email arrives</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="soundAlerts" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
+                        <p class="settings-note">Using Outlook, iCloud, Yahoo or another mailbox? Sign out and choose it on the sign-in screen.</p>
                     </div>
-                    <div class="settings-section">
-                        <h3>Security Settings</h3>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Multi-layer Analysis</h4>
-                                <p>Enable deep scanning of sender, content, and links</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="multiLayerScan" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Link Scanning</h4>
-                                <p>Check all URLs for malicious content</p>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="linkScanning" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
+
+                    <div class="settings-section settings-org" id="orgSection" hidden>
+                        <h3>Your organization or organization</h3>
+                        <div id="orgBox"></div>
                     </div>
-                    <div class="settings-section">
-                        <h3>Honeypot Settings</h3>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>Honeypot Mode</h4>
-                                <p>Automatically engage phishing senders with time-wasting replies</p>
+
+                    <div class="settings-grid">
+                        <div class="settings-section">
+                            <h3>Notification Preferences</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Real-time Alerts</h4>
+                                    <p>Get instant notifications for detected threats</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="realTimeAlerts" checked aria-label="Real-time alerts">
+                                    <span class="slider"></span>
+                                </label>
                             </div>
-                            <label class="switch">
-                                <input type="checkbox" data-setting="honeypotMode" id="settingsHoneypot">
-                                <span class="slider"></span>
-                            </label>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Sound Alerts</h4>
+                                    <p>Play sound when new email arrives</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="soundAlerts" checked aria-label="Sound alerts">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Weekly security digest</h4>
+                                    <p>Once a week, a short summary is emailed to your own inbox. <button type="button" class="link-btn" onclick="sendDigestNow(this)">Send one now</button></p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="weeklyDigest" aria-label="Weekly security digest">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Security Settings</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Multi-layer Analysis</h4>
+                                    <p>Enable deep scanning of sender, content, and links</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="multiLayerScan" checked aria-label="Multi-layer analysis">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Link Scanning</h4>
+                                    <p>Check all URLs for malicious content</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="linkScanning" checked aria-label="Link scanning">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Quarantine dangerous emails</h4>
+                                    <p>Move emails scored Dangerous to spam automatically. Undo any time from Blocked.</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="autoBlock" aria-label="Quarantine dangerous emails">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Honeypot Settings</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Honeypot Mode</h4>
+                                    <p>Automatically engage phishing senders with time-wasting replies</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" data-setting="honeypotMode" id="settingsHoneypot" aria-label="Honeypot mode">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-section settings-trusted">
+                            <h3>Trusted senders</h3>
+                            <p class="settings-note" style="margin:0 0 10px">Emails from these addresses aren't flagged unless something is clearly wrong, like a forged sender or a fake link. Marking an email as safe adds its sender here.</p>
+                            <form class="trusted-add" onsubmit="addSafeSenderFromForm(event)">
+                                <label for="safeSenderInput" class="sr-only">Email address to trust</label>
+                                <input type="email" id="safeSenderInput" placeholder="name@example.com" required>
+                                <button class="btn btn-secondary btn-sm" type="submit">Trust</button>
+                            </form>
+                            <ul class="trusted-list" id="safeSendersList"><li class="empty">Loading…</li></ul>
+                        </div>
+
+                        <div class="settings-section settings-wide" style="order:11">
+                            <h3>Rules</h3>
+                            <p class="settings-note" style="margin:0 0 10px">Your own rules run on every email. Trust rules never hide a forged sender or a fake link.</p>
+                            <form class="rule-add" onsubmit="addRuleFromForm(event)">
+                                <label class="sr-only" for="ruleField">When</label>
+                                <select id="ruleField">
+                                    <option value="domain">Sender's domain is</option>
+                                    <option value="sender">Sender address is</option>
+                                    <option value="subject">Subject contains</option>
+                                    <option value="attachment">Has attachment type</option>
+                                </select>
+                                <label class="sr-only" for="ruleValue">Value</label>
+                                <input id="ruleValue" placeholder="college.edu.np" required>
+                                <label class="sr-only" for="ruleAction">Then</label>
+                                <select id="ruleAction">
+                                    <option value="trust">Trust it</option>
+                                    <option value="flag">Mark worth a look</option>
+                                    <option value="quarantine">Quarantine it</option>
+                                </select>
+                                <button class="btn btn-secondary btn-sm" type="submit">Add rule</button>
+                            </form>
+                            <ul class="trusted-list" id="rulesList"><li class="empty">Loading…</li></ul>
+                        </div>
+
+                        <div class="settings-section settings-wide" style="order:12">
+                            <h3>Discord alerts</h3>
+                            <p class="settings-note" style="margin:0 0 10px">Get a message in your Discord server when a dangerous or suspicious email arrives. In Discord: Server settings → Integrations → Webhooks → New webhook → Copy URL. <span id="discordStatus"></span></p>
+                            <form class="trusted-add" onsubmit="saveDiscord(event)">
+                                <label for="discordUrl" class="sr-only">Discord webhook URL</label>
+                                <input type="url" id="discordUrl" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+                                <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+                                <button class="btn btn-secondary btn-sm" type="button" onclick="testDiscord()">Test</button>
+                            </form>
+                        </div>
+
+                        <div class="settings-section settings-wide" style="order:13">
+                            <h3>Activity</h3>
+                            <p class="settings-note" style="margin:0 0 6px">The last 50 things done on your account.</p>
+                            <ul class="activity-list" id="activityList"><li class="empty">Loading…</li></ul>
+                        </div>
+
+                        <div class="settings-section settings-wide" style="order:13">
+                            <h3>Export to a SIEM</h3>
+                            <p class="settings-note" style="margin:0 0 10px">Download the last 30 days of threats and account activity for Splunk, Wazuh, Elastic or any SIEM.</p>
+                            <div class="siem-buttons">
+                                <a class="btn btn-secondary btn-sm" href="#" onclick="return siemExport('jsonl')"><i class="fas fa-file-code"></i> JSON lines</a>
+                                <a class="btn btn-secondary btn-sm" href="#" onclick="return siemExport('cef')"><i class="fas fa-file-alt"></i> CEF</a>
+                                <a class="btn btn-secondary btn-sm" href="#" onclick="return siemExport('syslog')"><i class="fas fa-stream"></i> Syslog (RFC 5424)</a>
+                            </div>
+                        </div>
+
+                        <div class="settings-section settings-wide" style="order:13">
+                            <h3>API keys</h3>
+                            <p class="settings-note" style="margin:0 0 10px">Let your own scripts or tools check emails and read threats. A key is shown once; only a fingerprint of it is stored. Up to 5 keys.</p>
+                            <form class="trusted-add" onsubmit="createApiKey(event)">
+                                <label for="apiKeyName" class="sr-only">Key name</label>
+                                <input type="text" id="apiKeyName" maxlength="60" placeholder="Name, e.g. Wazuh server" autocomplete="off">
+                                <button class="btn btn-secondary btn-sm" type="submit">Create key</button>
+                            </form>
+                            <div class="api-key-new" id="apiKeyNew" hidden></div>
+                            <ul class="activity-list api-key-list" id="apiKeyList"><li class="empty">Loading…</li></ul>
+                            <details class="api-docs">
+                                <summary>How to use it</summary>
+<pre>curl -X POST https://genjutsu.org/api/v1/check \
+  -H "Authorization: Bearer gj_…" -H "Content-Type: application/json" \
+  -d '{"from":"PayPal &lt;a@paypa1.co&gt;","subject":"Verify","body":"…"}'
+
+GET /api/v1/threats?days=7          your recent threats
+GET /api/v1/events?format=cef       the SIEM feed (jsonl, cef or syslog)</pre>
+                                <p class="settings-note">60 requests a minute per key.</p>
+                            </details>
+                        </div>
+
+                        <div class="settings-section settings-wide danger-zone" style="order:14">
+                            <h3>Delete account</h3>
+                            <p class="settings-note" style="margin:0 0 12px">Permanently deletes your Genjutsu account and everything it stored: scan history, honeypot conversations, rules and settings. Google access is revoked. This can't be undone. Your emails themselves stay in your mailbox.</p>
+                            <button class="btn btn-danger-outline btn-sm" type="button" onclick="deleteAccount()"><i class="fas fa-trash"></i> Delete my account</button>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Appearance</h3>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h4>Dark mode</h4>
+                                    <p>Switch between the dark and light look. Saved on this device.</p>
+                                    <p><a href="#" onclick="startTour(true);return false;">Show the tour again</a></p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="themeSwitch" checked aria-label="Dark mode">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- FIRST-RUN TOUR -->
+    <div class="tour-overlay" id="tour" hidden>
+        <div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+            <div class="tour-step" id="tourStep"></div>
+            <h3 id="tourTitle"></h3>
+            <p id="tourText"></p>
+            <div class="tour-dots" id="tourDots"></div>
+            <div class="tour-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="tourSkip">Skip</button>
+                <button type="button" class="btn btn-primary btn-sm" id="tourNext">Next</button>
+            </div>
+        </div>
     </div>
 
     <!-- TOAST NOTIFICATION -->
@@ -471,6 +757,9 @@
             <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-secondary" id="modalReport" style="display:none;" title="Forward this email to the Anti-Phishing Working Group">
+                    <i class="fas fa-flag"></i> Report phishing
+                </button>
                 <button class="btn btn-danger" id="modalEngageHoneypot" style="display:none;">
                     <i class="fas fa-bug"></i> Engage Honeypot
                 </button>

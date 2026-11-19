@@ -2,6 +2,8 @@
 // services/threatService.js — Multi-layer + ML + NLP + SPF/DKIM/DMARC
 // ============================================================
 const { classifyText, extractNLPFeatures } = require('./mlService');
+const detection = require('./detection');
+const { applyRules } = require('./rules');
 
 const PHISHING_KEYWORDS = [
   'verify your account','confirm your password','unusual activity',
@@ -249,30 +251,36 @@ async function checkUrlsSafeBrowsing(urls) {
   } catch { return { penalty: 0, issues: [] }; }
 }
 
-async function analyseEmail(email) {
+async function analyseEmail(email, ctx = {}) {
   const fromLower    = (email.from || '').toLowerCase();
   const senderDomain = (fromLower.match(/@([\w.-]+)/) || [])[1] || '';
 
   if (SYSTEM_SENDERS.test(fromLower)) {
-    return { emailId: email.id, level: 'safe', subType: null, score: 0,
+    return { emailId: email.id, level: 'safe', subType: null, score: 0, category: 'system',
              reasons: ['System delivery notification'],
              mlResult: { label: 'safe', confidence: 0 },
-             nlpFeatures: {}, authDetails: {},
+             nlpFeatures: {}, authDetails: {}, mitre: [], iocs: null,
              scannedAt: new Date().toISOString() };
   }
-  if (TRUSTED_DOMAINS.some(d => senderDomain === d || senderDomain.endsWith('.' + d))) {
-    const cappedResult = await analyseEmailUncapped(email);
-    cappedResult.score = Math.min(cappedResult.score, 25);
-    cappedResult.level = cappedResult.score >= 30 ? 'suspicious' : 'safe';
-    // Clear subType if capped to safe
-    if (cappedResult.level === 'safe') cappedResult.subType = null;
-    return cappedResult;
+  const result = await analyseEmailUncapped(email, ctx);
+  // Well-known senders are capped low, but never when the email shows
+  // real danger signs (forged sender, look-alike link, etc.)
+  if (!result._hard && TRUSTED_DOMAINS.some(d => senderDomain === d || senderDomain.endsWith('.' + d))) {
+    result.score = Math.min(result.score, 25);
+    finalise(result);
   }
-
-  return await analyseEmailUncapped(email);
+  delete result._hard;
+  return result;
 }
 
-async function analyseEmailUncapped(email) {
+// Recompute level/subType/MITRE/IOCs after any score change
+function finalise(r) {
+  r.level = r.score >= 60 ? 'dangerous' : r.score >= 30 ? 'suspicious' : 'safe';
+  if (r.level === 'safe') { r.subType = null; r.mitre = []; r.iocs = null; }
+  return r;
+}
+
+async function analyseEmailUncapped(email, ctx = {}) {
   const reasons = [];
   let   score   = 0;
   const bodyLower    = ((email.body || '') + ' ' + (email.subject || '')).toLowerCase();
@@ -344,6 +352,92 @@ async function analyseEmailUncapped(email) {
   score += attScan.penalty;
   reasons.push(...attScan.issues);
 
+  // Layers 10–15: display-name spoofing, look-alike domains, Reply-To mismatch,
+  // hidden links, payment-fraud wording, newly registered domains
+  const extra = await detection.extraLayers(email, ctx);
+  score += extra.score;
+  reasons.push(...extra.reasons);
+
+  // "Hard" signs are things legitimate senders don't do. Trust signals below
+  // never cancel them out.
+  const ipLink  = (email.links || []).some(l => /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/.test(l));
+  const regexLink = (email.links || []).some(l => SUSPICIOUS_DOMAINS.some(p => p.test(l)));
+  const riskyAtt = (attScan.details || []).filter(d => d.risk === 'dangerous');
+  // Layer 16: Genjutsu's global block list (domains an admin blocked for everyone)
+  let globalBlock = null;
+  if (ctx.blockedDomains && ctx.blockedDomains.size) {
+    const senderDom = (detection.addressOf(email.from) || '').split('@')[1] || '';
+    const doms = [senderDom, ...(email.links || []).map(l => detection.hostOf(l))]
+      .filter(Boolean).map(d => detection.registrable(d.toLowerCase()));
+    globalBlock = doms.find(d => ctx.blockedDomains.has(d)) || null;
+    if (globalBlock) { score += 100; reasons.unshift(`On Genjutsu's global block list: ${globalBlock}`); }
+  }
+  // Layer 18: what's INSIDE the attachments (services/attachmentScanner.js ran before this)
+  let fileDanger = [], fileWarn = [];
+  for (const f of email.fileFindings || []) {
+    for (const x of f.findings || []) {
+      if (x.level === 'dangerous') fileDanger.push(`Dangerous file contents: "${f.filename}" ${x.text}`);
+      else if (x.level === 'suspicious') fileWarn.push(`File contents: "${f.filename}" ${x.text}`);
+    }
+    for (const q of f.qr || []) reasons.push(/^https?:/i.test(q) ? `QR code in "${f.filename}" opens ${q.slice(0, 120)}` : `QR code in "${f.filename}" contains: ${q.slice(0, 80)}`);
+  }
+  if (fileDanger.length) { score += Math.min(70, 50 + 10 * (fileDanger.length - 1)); reasons.push(...fileDanger); }
+  if (fileWarn.length) { score += Math.min(30, 15 * fileWarn.length); reasons.push(...fileWarn); }
+  const qrLinks = (email.fileFindings || []).flatMap(f => f.qr || []).filter(q => /^https?:/i.test(q));
+  if (qrLinks.length && /\b(scan|qr)\b/i.test(`${email.subject || ''} ${email.body || ''}`)) {
+    score += 15; reasons.push('Asks you to scan a QR code: a common way to hide a scam link from email filters');
+  }
+
+  // Layer 17: the shared threat feed — attackers seen hitting several Genjutsu users
+  let sharedHit = null;
+  if (ctx.shared && (ctx.shared.domains?.size || ctx.shared.senders?.size)) {
+    const addr = detection.addressOf(email.from) || '';
+    const sDom = detection.registrable((addr.split('@')[1] || '').toLowerCase());
+    const linkDoms = (email.links || []).map(l => detection.registrable(detection.hostOf(l))).filter(Boolean);
+    if (ctx.shared.senders?.has(addr)) sharedHit = { value: addr, users: ctx.shared.senders.get(addr) };
+    else for (const d of [sDom, ...linkDoms]) if (ctx.shared.domains?.has(d)) { sharedHit = { value: d, users: ctx.shared.domains.get(d) }; break; }
+    if (sharedHit) { score += 45; reasons.unshift(`Seen in attacks on ${sharedHit.users} Genjutsu users: ${sharedHit.value}`); }
+  }
+
+  const hard = extra.hard || sbPenalty > 0 || auth.penalty >= 20 || ipLink || regexLink || riskyAtt.length > 0 || !!globalBlock || !!sharedHit || fileDanger.length > 0;
+
+  // ── Trust signals (cut newsletter false alarms) ─────────────
+  let category = null;
+  const fromAddr = detection.addressOf(email.from);
+  if (!hard) {
+    if (detection.isNewsletter(email)) {
+      category = 'newsletter';
+      score = Math.min(score, 24);
+      reasons.unshift('Verified newsletter: sender passed SPF/DKIM/DMARC and includes an unsubscribe option');
+    }
+    if (ctx.safeSenders && ctx.safeSenders.has(fromAddr)) {
+      score = Math.min(score, 15);
+      reasons.unshift('You marked this sender as safe');
+    } else if (ctx.history && (ctx.history[fromAddr] || 0) >= 3) {
+      score = Math.max(0, score - 10);
+      reasons.push(`Known sender: ${ctx.history[fromAddr]} earlier emails were safe`);
+    }
+  }
+
+  // ── Sender history: a first-time sender is a warning sign only together with others ──
+  let senderHistory = null;
+  if (ctx.seen) {
+    const prev = ctx.seen[fromAddr];
+    const earlier = prev ? Math.max(0, prev.n - (prev.ids.includes(email.id) ? 1 : 0)) : 0;
+    senderHistory = { earlier, firstTime: earlier === 0, firstSeen: earlier ? prev.first : null };
+    if (earlier === 0 && score >= 20 && !category) { score += 10; reasons.push('First email from this sender: you have never received mail from this address before'); }
+  }
+
+  // ── The user's own rules ─────────────────────────────────────
+  // trust never overrides hard danger signs; flag/quarantine always apply
+  const rule = applyRules(ctx.rules, email);
+  let quarantineByRule = false;
+  if (rule) {
+    if (rule.action === 'trust' && !hard) { score = Math.min(score, 15); reasons.unshift(rule.text); }
+    else if (rule.action === 'flag')       { score = Math.max(score, 30); reasons.unshift(rule.text); }
+    else if (rule.action === 'quarantine') { score = Math.max(score, 60); reasons.unshift(rule.text); quarantineByRule = true; }
+  }
+
   const level = score >= 60 ? 'dangerous' : score >= 30 ? 'suspicious' : 'safe';
 
   // ── CHANGE: Sub-type classification (post-analysis enrichment) ───────────
@@ -351,21 +445,23 @@ async function analyseEmailUncapped(email) {
   // split threats across 4 cards (Phishing, Malware Links, Spoofed Senders, Other).
   // Priority order: malware_link > spoofed_sender > phishing > other
   // Safe emails get null — they never appear on the threat cards.
+  // What kind of threat it is (one of the four Threat Analysis cards). Decided by what
+  // the email is trying to do, most harmful first:
+  //   malware_link   - a known-malicious link (Google Safe Browsing) or a dangerous file
+  //   phishing       - a bad link to steal logins (look-alike, hidden, IP-address or
+  //                    known-scam link, or a brand new domain), or login-stealing wording
+  //   spoofed_sender - pretends to be someone without a bad link: fake display name,
+  //                    failed SPF/DKIM/DMARC, Reply-To mismatch, change-of-bank-details
+  //   other          - caught by other signals (wording, many links, the model)
   let subType = null;
   if (level !== 'safe') {
-    if (sbPenalty > 0) {
-      // Google Safe Browsing confirmed a malicious URL in this email
-      subType = 'malware_link';
-    } else if (auth.penalty > 0) {
-      // SPF / DKIM / DMARC failure — sender is impersonating a domain
-      subType = 'spoofed_sender';
-    } else if (reasons.some(r => r.includes('Phishing keyword') || r.includes('ML Classifier'))) {
-      // Naive Bayes or keyword match triggered — classic phishing content
-      subType = 'phishing';
-    } else {
-      // Caught by urgency words, link count, attachment, or NLP — doesn't fit above
-      subType = 'other';
-    }
+    const badLink = extra.flags.has('link') || ipLink || regexLink || !!globalBlock || !!sharedHit ||
+      reasons.some(r => /^New domain:|^Suspicious URL|^IP-address URL/.test(r));
+    if (sbPenalty > 0 || riskyAtt.length > 0 || fileDanger.length > 0) subType = 'malware_link';
+    else if (badLink) subType = 'phishing';
+    else if (extra.flags.has('impersonation') || extra.flags.has('bec') || auth.penalty > 0) subType = 'spoofed_sender';
+    else if (extra.flags.has('credentials') || reasons.some(r => r.includes('Phishing keyword') || r.includes('ML Classifier'))) subType = 'phishing';
+    else subType = 'other';
   }
 
   return {
@@ -378,12 +474,24 @@ async function analyseEmailUncapped(email) {
     nlpFeatures:       nlp,
     authDetails:       { raw: email.authResults || '', issues: auth.issues },
     attachmentDetails: attScan.details,
+    category,                         // 'newsletter' | null
+    quarantineByRule,
+    mitre: detection.mitreFor({ flags: extra.flags, riskyAttachment: riskyAtt.length > 0, badLink: sbPenalty > 0 || ipLink || regexLink, authFail: auth.penalty >= 20, level,
+      maliciousFile: fileDanger.length > 0, hiddenInFile: qrLinks.length > 0 || fileWarn.some(r => /password-locked|another archive/.test(r)) }),
+    iocs:  detection.iocsFor(email, {
+      level,
+      badUrls: [...extra.badUrls, ...(email.links || []).filter(l => SUSPICIOUS_DOMAINS.some(p => p.test(l)) || /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}/.test(l)), ...(sbPenalty > 0 ? (email.links || []).slice(0, 10).filter(l => reasons.some(r => r.includes(l))) : [])],
+      riskyAttachments: riskyAtt.map(d => d.filename)
+    }),
+    _hard: hard,
+    senderHistory,
+    sharedFeed: sharedHit,
     scannedAt:         new Date().toISOString()
   };
 }
 
-async function scanEmails(emails) {
-  return Promise.all(emails.map(email => analyseEmail(email)));
+async function scanEmails(emails, ctx = {}) {
+  return Promise.all(emails.map(email => analyseEmail(email, ctx)));
 }
 
 module.exports = { analyseEmail, scanEmails };

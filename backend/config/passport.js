@@ -18,8 +18,16 @@ passport.use(new GoogleStrategy({
         email:        profile.emails[0].value,
         picture:      profile.photos[0]?.value || '',
         accessToken,
-        refreshToken
+        refreshToken,
+        provider:     'google'
       };
+
+      // One Genjutsu account per address: if this address already signs in
+      // with Outlook or IMAP, do not create a second account for it.
+      const existing = await getUserByEmail(user.email);
+      if (existing && existing.user_id !== user.id) {
+        return done(null, false, { reason: 'conflict', existingProvider: existing.provider || 'google' });
+      }
 
       await upsertUser(user);
 
@@ -37,7 +45,9 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-passport.serializeUser((user, done)   => done(null, user));
+// Only the ID goes into passport's part of the session. The app uses
+// req.session.user (with encrypted tokens), so tokens are never stored twice.
+passport.serializeUser((user, done)   => done(null, { id: user.id }));
 passport.deserializeUser((user, done) => done(null, user));
 
 module.exports = passport;

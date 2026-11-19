@@ -10,6 +10,7 @@
 const express         = require('express');
 const { requireAuth } = require('../middleware/authMiddleware');
 const https           = require('https');
+const { groqRequestOptions } = require('../services/groqModel');
 
 const router = express.Router();
 
@@ -18,13 +19,11 @@ const router = express.Router();
 async function callGroq(systemPrompt, userMessage) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      ...groqRequestOptions({ answerTokens: 500, temperature: 0.7 }),
       messages: [
         { role: 'system', content: systemPrompt || 'You are a helpful assistant.' },
         { role: 'user',   content: userMessage }
-      ],
-      max_tokens:  500,
-      temperature: 0.7
+      ]
     });
 
     const options = {
@@ -113,6 +112,7 @@ function hasKey() {
 
 // ── POST /api/ai/chat ─────────────────────────────────────────
 router.post('/ai/chat', requireAuth, async (req, res) => {
+  if (req.session.user?.provider === 'demo') return res.json({ success: true, reply: 'AI features are switched off in the demo. Sign in with your own mailbox to use them.', summary: 'AI summaries are switched off in the demo. Sign in with your own mailbox to use them.', demo: true });
   const { message, context } = req.body;
   if (!message) return res.status(400).json({ success: false, error: 'Message required.' });
 
@@ -122,11 +122,11 @@ router.post('/ai/chat', requireAuth, async (req, res) => {
   }
 
   try {
-    const system = `You are Genjutsu AI, a friendly email security assistant inside the Genjutsu Gmail Security System.
+    const system = `You are Genjutsu AI, a friendly email security assistant inside the Genjutsu Email Security System (works with Gmail, Outlook, Yahoo, iCloud and other mailboxes).
 Help users understand email threats, phishing attacks, and how to stay safe online.
 Be friendly, concise, practical. Keep responses under 150 words.
 If asked something unrelated to email security, politely redirect.
-User context: ${context || 'Regular Gmail user'}`;
+User context: ${context || 'Regular email user'}`;
 
     const reply = await callAI(system, message);
     res.json({ success: true, reply });
@@ -138,6 +138,7 @@ User context: ${context || 'Regular Gmail user'}`;
 
 // ── POST /api/ai/summarise ────────────────────────────────────
 router.post('/ai/summarise', requireAuth, async (req, res) => {
+  if (req.session.user?.provider === 'demo') return res.json({ success: true, reply: 'AI features are switched off in the demo. Sign in with your own mailbox to use them.', summary: 'AI summaries are switched off in the demo. Sign in with your own mailbox to use them.', demo: true });
   const { subject, from, body, threat } = req.body;
   if (!subject && !from) return res.status(400).json({ success: false, error: 'Email data required.' });
 

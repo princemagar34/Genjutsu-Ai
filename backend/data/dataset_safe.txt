@@ -1,0 +1,94 @@
+nepal|Dear parents, the parent teacher meeting for class 9 will be held on Saturday at 10 AM in the school hall. Please bring the report card.
+nepal|Notice: the school will remain closed on Friday for the Tihar holiday. Classes resume on Monday at the usual time.
+nepal|The terminal exam routine for grades 6 to 10 is now on the notice board and the school website.
+nepal|Reminder: the science exhibition is next week. Students should submit their project titles to the class teacher by Wednesday.
+nepal|Staff meeting today at 3 PM in the conference room to discuss the annual sports week schedule.
+nepal|The college library will stay open until 8 PM during the exam period. Please carry your ID card.
+nepal|Your NEB result has been published. You can view it on the official website using your symbol number.
+nepal|Thank you for your payment of the monthly school fee. Your receipt number is attached for your records.
+nepal|Your Daraz order has been shipped and will arrive in 3 to 5 days. Track it in the Daraz app.
+nepal|Your NTC postpaid bill for this month is ready. You can pay it through your bank app or at any NTC counter.
+nepal|Nabil Bank: your account statement for October is ready. View it by logging in to the Nabil app as usual. We never ask for your password.
+nepal|eSewa will never ask for your MPIN or OTP. Do not share them with anyone, including people who say they are from eSewa.
+nepal|Your Khalti load of Rs 1,000 was successful. Thank you for using Khalti.
+nepal|The class 12 farewell program will be on the 15th. Students should collect their invitation from the office.
+nepal|We are happy to announce the winners of the inter house quiz competition. Congratulations to Everest house.
+nepal|Please find the minutes of yesterday's department meeting attached. Let me know if anything needs to be corrected.
+nepal|Hi, are we still meeting for tea after class tomorrow? Let me know what time works for you.
+nepal|Happy Dashain to you and your family. Wishing you good health and success.
+nepal|The internet in the computer lab will be down for maintenance on Sunday morning.
+nepal|Interview schedule for the teaching assistant position: your interview is on Thursday at 11 AM at the main campus.
+nepal|Admission for the new academic session is open. Visit the school office with the required documents during office hours.
+nepal|Your appointment with the dentist is confirmed for Tuesday at 4 PM. Please arrive ten minutes early.
+nepal|Electricity will be cut in your area on Saturday from 10 AM to 2 PM for line maintenance.
+nepal|Thank you for attending the cyber safety workshop. The slides are available on the school portal.
+nepal|Reminder to submit the lesson plans for next month by Friday. Use the shared folder as usual.
+nepal|The annual function rehearsal will be held after school every day this week in the auditorium.
+nepal|Your Mero Share IPO application was received. Results will be published on the CDSC website.
+nepal|Bus route 3 will run 15 minutes late tomorrow because of road work near the chowk.
+nepal|Please bring two passport size photos and a copy of your citizenship for the scholarship form.
+nepal|The football match against the neighbouring school is on Saturday. Players should report at 7 AM.
+global|Hi team, the weekly sync is moved to Thursday at 10 AM. The agenda is in the shared document.
+global|Please review the attached quarterly report and send your feedback by the end of the week.
+global|Your flight booking is confirmed. Check in opens 24 hours before departure in the airline app.
+global|Thanks for your order. We will email you again when it ships.
+global|Your monthly newsletter: product updates, new features and tips from our blog.
+global|Welcome to the course. Your first lesson is available now. Reply if you have any questions.
+global|Your subscription receipt for this month is attached. No action is needed.
+global|Lunch on Friday? There is a new momo place near the office.
+global|The conference call details for Monday are below. The meeting will be recorded for those who cannot join.
+global|Release notes: version 2.4 fixes several bugs and improves performance on older devices.
+global|Your pull request was merged. Thanks for the contribution.
+global|Reminder: your library book is due back next Tuesday. You can renew it online.
+global|Thanks for attending the webinar. Here is the recording and the slides.
+global|Your password was changed successfully. If you did this, you can ignore this email.
+global|New sign-in to your account from a Mac in Kathmandu. If this was you, there is nothing else you need to do.
+global|Your verification code is 482915. It expires in 10 minutes. We will never ask you for this code.
+global|Your package was delivered to the front desk at 2:14 PM.
+global|We received your job application and will contact you if your profile matches the role.
+global|Here are the photos from the trip. It was great to see everyone again.
+global|The workshop registration is confirmed. The venue and agenda are attached.
+global|Team lunch is booked for Friday at 1 PM. Please reply if you have dietary needs.
+global|Your annual leave from 5th to 9th is approved. Enjoy your holiday.
+global|Minutes of the board meeting are attached for your review before the next session.
+global|Your gym class schedule for next week: yoga on Monday, swimming on Wednesday and pilates on Friday.
+global|Happy birthday! Hope you have a wonderful day with your family.
+global|The project proposal deadline is next Monday. Please upload the final draft to the shared folder.
+global|Thank you for your feedback. We have passed it on to the product team.
+global|Your invoice from the web hosting provider is available in your dashboard. It will be charged to your saved card.
+global|Weekly digest: 5 new posts in groups you follow.
+global|Your appointment reminder: annual check up on Thursday at 9 AM.
+global|The office will be closed on Monday for the public holiday.
+global|Can you share the slides from yesterday's presentation? I would like to use them in my report.
+global|Please find attached the timetable for next semester. Let me know if there are any clashes.
+global|Congratulations on completing the course. Your certificate can be downloaded from your profile.
+global|Our weekly engineering blog: how we reduced page load time by 40 percent.
+global|The quarterly all hands meeting is on Friday. Questions can be submitted in advance.
+global|Thanks for your donation. Your receipt for tax purposes is attached.
+global|Parking at the main building is closed this weekend for repairs. Please use the east gate.
+global|The book club meets next Thursday to discuss chapters five to eight.
+global|Your car service is complete and ready for pickup after 5 PM.
+global|We have updated our privacy policy. You can read the changes on our website. No action is needed.
+global|Your cloud storage is 80 percent full. You can manage your files in settings or upgrade your plan in the app.
+global|Reminder: the fire drill is scheduled for Wednesday morning. Please follow the wardens.
+global|Here is the recipe you asked for. It takes about 30 minutes to cook.
+global|The new printer on the second floor is now working. The driver installs automatically.
+global|Hi, just checking in to see how the move went. Let me know if you need any help.
+global|Your exam results are available in the student portal. Contact your advisor if you have questions.
+global|The team photo session is on Tuesday after lunch. Please wear the company t-shirt.
+global|Our office hours this week are 9 AM to 5 PM. Reply to book a time to talk.
+global|Your parcel is out for delivery today between 12 and 4 PM.
+global|You asked to reset your password. Use the link in the app to choose a new one. If you did not ask, you can ignore this email.
+global|Invoice 1042 for consulting services in October is attached. Payment terms are 30 days to our usual account.
+global|Your bank statement is available. Log in through our official app or website as usual to view it.
+global|Payment received. Thank you, your account balance is now up to date.
+global|Your card was used for a purchase of Rs 1,250 at a supermarket. If you recognise this, no action is needed.
+global|Your account security settings were updated. You turned on two-step verification.
+global|Your order of school books has been confirmed and will be ready for pickup on Monday.
+global|We noticed you have not finished setting up your profile. You can continue any time from the app.
+nepal|Namaste sir, bholi ko class 10 baje suru huncha. Kitab ra copy lyaunu hola.
+nepal|Hajur ko order dispatch bhayo, 2 din bhitra aaipugcha. Dhanyabad.
+nepal|Bholi school ma sports day cha, sabai bidyarthi le uniform lagaunu hola.
+nepal|Tapai ko appointment Bihibar 11 baje ko lagi confirm bhayo.
+nepal|Meeting aaja 4 baje office ma cha, sabai jana samaya ma aaunu hola.
+nepal|Exam form bharne antim miti Shukrabar ho. College office ma aaunu hola.
