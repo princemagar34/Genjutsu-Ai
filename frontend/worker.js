@@ -1,6 +1,6 @@
 // worker.js — Genjutsu Cloudflare Worker
 // Serves static frontend files via env.ASSETS (modern Workers Assets API)
-// Proxies /admin, /auth, /api routes to the Express backend on Cloud Run
+// Proxies /admin, /auth, /api routes to the Express backend on Render
 
 const BACKEND_PREFIXES = ['/admin', '/auth', '/api'];
 

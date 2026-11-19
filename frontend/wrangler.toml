@@ -7,4 +7,4 @@ compatibility_date = "2024-01-01"
 assets = { directory = "./" }
 
 [vars]
-BACKEND_HOST = "https://genjutsu-644123621234.asia-south1.run.app"
+BACKEND_HOST = "https://genjutsu-api.onrender.com"
