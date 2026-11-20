@@ -246,6 +246,31 @@ async function fetchEmails(user, maxResults = 20) {
   });
 }
 
+// Search the whole inbox (not just the newest messages) by sender, subject or
+// body text, using the server's own IMAP SEARCH. Newest matches first.
+async function searchEmails(user, query, maxResults = 50) {
+  const max  = Math.max(1, Math.min(parseInt(maxResults, 10) || 50, 100));
+  const term = String(query || '').trim();
+  if (!term) return [];
+  return withImap(credsOf(user), async (client) => {
+    const lock = await client.getMailboxLock('INBOX');
+    try {
+      const uids = (await client.search({ or: [{ from: term }, { subject: term }, { body: term }] }, { uid: true })) || [];
+      if (!uids.length) return [];
+      const pick = uids.sort((a, b) => a - b).slice(-max);
+      const raw = [];
+      for await (const msg of client.fetch(pick, { uid: true, flags: true, internalDate: true, source: { maxLength: MAX_SOURCE } }, { uid: true })) {
+        raw.push(msg);
+      }
+      const emails = [];
+      for (const msg of raw) {
+        try { emails.push(await normalise(msg)); } catch (_) { /* skip unparsable */ }
+      }
+      return emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } finally { lock.release(); }
+  });
+}
+
 async function sendReply(user, to, subject, body, threadOptions = {}) {
   const creds = credsOf(user);
   if (creds.provider === 'custom') await assertPublicHost(creds.smtp.host);
@@ -335,5 +360,5 @@ module.exports = {
   getAttachment: async (user, email, att) => att._content || null,
   name, label, hasServerFilters, PRESETS,
   publicPresets, buildCredentials, verify, isPrivateAddress,
-  fetchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
+  fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
 };

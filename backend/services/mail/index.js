@@ -79,6 +79,17 @@ async function fetchEmails(user, maxResults = 20) {
   });
 }
 
+// Search the whole mailbox (older emails too). Blocked senders stay hidden,
+// exactly like the normal inbox list.
+async function searchEmails(user, query, maxResults = 50) {
+  const provider = providerFor(user);
+  if (!provider.searchEmails) return [];
+  return withMailbox(user, async ctx => {
+    const emails = await provider.searchEmails(ctx, query, maxResults);
+    return provider.hasServerFilters ? emails : enforceBlockedSenders(ctx, provider, emails);
+  });
+}
+
 // One attachment's bytes, for the attachment check (null when the provider can't give them)
 async function getAttachment(user, email, att) {
   const provider = providerFor(user);
@@ -109,6 +120,6 @@ const sendToSelf = (user, subject, body) => withMailbox(user, ctx => providerFor
 module.exports = {
   getAttachment,
   providers, providerFor, providerLabel,
-  fetchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom,
+  fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom,
   forwardAsAttachment, sendToSelf, withMailbox
 };

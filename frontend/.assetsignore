@@ -1,6 +1,7 @@
-node_modules
-worker.js
 wrangler.toml
+.wrangler
+worker.js
 package.json
 package-lock.json
+node_modules
 .assetsignore

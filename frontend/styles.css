@@ -3203,3 +3203,19 @@ html:not([data-theme="light"]) #loginScreen .login-theme-btn { background: #1215
 .category-card h3 small { font-size: .75em; font-weight: 500; color: var(--text-muted); }
 
 .new-sender { flex: 0 0 auto; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; color: var(--warning-color); border: 1px solid rgba(245,158,11,.4); background: rgba(245,158,11,.10); }
+
+/* ── Whole-mailbox search results banner ─────────────────── */
+.mailbox-search-banner {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin: 0 0 12px; padding: 10px 14px;
+    border: 1px solid var(--border-color); border-radius: 12px;
+    color: var(--text-secondary); font-size: 14px; line-height: 1.4;
+}
+.mailbox-search-banner > i { opacity: .7; }
+.mailbox-search-banner > span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.mailbox-search-banner strong { color: var(--text-primary, inherit); }
+.mailbox-search-banner .btn-link {
+    background: none; border: 0; padding: 4px 0; cursor: pointer;
+    font: inherit; font-weight: 600; color: var(--info-color, #3b82f6);
+    text-decoration: underline; text-underline-offset: 3px;
+}

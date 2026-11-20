@@ -343,7 +343,7 @@ async function initDB() {
   const defaults = [
     ['threat_score_dangerous',  '60'],
     ['threat_score_suspicious', '30'],
-    ['max_emails_scan',         '50'],
+    ['max_emails_scan',         '100'],
     ['honeypot_enabled',        'true'],
     ['team_alerts',             'true'],
     ['scan_on_login',           'true'],
@@ -355,6 +355,17 @@ async function initDB() {
       [k, v]
     );
   }
+
+  // One-time upgrade: the inbox now checks the latest 100 emails. Moves the old
+  // default (50) up once; a value an admin chose later is left alone.
+  await query(`
+    WITH done AS (
+      INSERT INTO system_settings (key, value, updated_by)
+      VALUES ('upgrade_scan_100', 'done', 'system') ON CONFLICT (key) DO NOTHING RETURNING key
+    )
+    UPDATE system_settings SET value = '100'
+    WHERE key = 'max_emails_scan' AND value = '50' AND EXISTS (SELECT 1 FROM done)
+  `);
 
   // Seed super admin from .env
   await seedSuperAdmin();

@@ -15,19 +15,65 @@ function getGmailClient(accessToken) {
     return google.gmail({ version: 'v1', auth });
 }
 
-async function fetchEmails(accessToken, maxResults = 20) {
+// ── Parsed-message cache ─────────────────────────────────────
+// The inbox is re-read every minute while the dashboard is open. Listing the
+// newest message IDs is one cheap call; downloading each full message is the
+// expensive part, so a message is downloaded once and then reused. Entries are
+// keyed by mailbox owner + message ID and capped so memory stays small on the
+// free server. Callers get a copy, because later steps add fields to emails.
+const DETAIL_CACHE_MAX = 3000;
+const detailCache = new Map();   // `${owner}:${id}` -> parsed email
+
+function cacheGet(key) {
+    const hit = detailCache.get(key);
+    if (!hit) return null;
+    detailCache.delete(key); detailCache.set(key, hit);   // mark as recently used
+    return structuredClone(hit);
+}
+function cacheSet(key, value) {
+    detailCache.set(key, value);
+    while (detailCache.size > DETAIL_CACHE_MAX) detailCache.delete(detailCache.keys().next().value);
+}
+
+// Download full messages, 10 at a time, skipping ones already cached
+async function getDetails(gmail, ids, owner) {
+    const out = new Array(ids.length);
+    const todo = [];
+    ids.forEach((id, i) => {
+        const hit = owner ? cacheGet(`${owner}:${id}`) : null;
+        if (hit) out[i] = hit; else todo.push(i);
+    });
+    for (let k = 0; k < todo.length; k += 10) {
+        await Promise.all(todo.slice(k, k + 10).map(async (i) => {
+            const detail = await gmail.users.messages.get({ userId: 'me', id: ids[i], format: 'full' });
+            const parsed = parseEmail(detail.data);
+            if (owner) cacheSet(`${owner}:${ids[i]}`, structuredClone(parsed));
+            out[i] = parsed;
+        }));
+    }
+    return out.filter(Boolean);
+}
+
+// Newest `maxResults` emails in the inbox. `owner` (the user's ID) turns on the cache.
+async function fetchEmails(accessToken, maxResults = 20, owner = '') {
     const gmail   = getGmailClient(accessToken);
     const listRes = await gmail.users.messages.list({
         userId: 'me', maxResults, labelIds: ['INBOX']
     });
+    const ids = (listRes.data.messages || []).map(m => m.id);
+    return getDetails(gmail, ids, owner);
+}
 
-    const messages = listRes.data.messages || [];
-    return Promise.all(messages.map(async (msg) => {
-        const detail = await gmail.users.messages.get({
-            userId: 'me', id: msg.id, format: 'full'
-        });
-        return parseEmail(detail.data);
-    }));
+// Search the whole mailbox (not just the newest emails) with Gmail's own search
+// syntax: plain words, from:, subject:, before:/after:, has:attachment …
+// Sent mail, drafts and chats are left out; spam and trash are excluded by Gmail.
+async function searchEmails(accessToken, query, maxResults = 50, owner = '') {
+    const gmail   = getGmailClient(accessToken);
+    const listRes = await gmail.users.messages.list({
+        userId: 'me', maxResults, q: `${query} -in:sent -in:drafts -in:chats`
+    });
+    const ids = (listRes.data.messages || []).map(m => m.id);
+    return getDetails(gmail, ids, owner);
 }
 
 function parseEmail(raw) {
@@ -206,4 +252,4 @@ async function getAttachment(accessToken, messageId, attachmentId) {
     return Buffer.from(data.data || '', 'base64url');
 }
 
-module.exports = { fetchEmails, sendReply, getGmailClient, moveToSpam, createSpamFilter, removeFromSpam, parseEmail, getAttachment };
+module.exports = { fetchEmails, searchEmails, sendReply, getGmailClient, moveToSpam, createSpamFilter, removeFromSpam, parseEmail, getAttachment };

@@ -72,6 +72,13 @@ async function fetchEmails(user, maxResults = 50) {
   const s = st(user);
   return SAMPLES().filter(e => !s.spam.has(e.id)).slice(0, maxResults);
 }
+async function searchEmails(user, query, maxResults = 50) {
+  const q = String(query || '').toLowerCase().trim();
+  if (!q) return [];
+  return (await fetchEmails(user, 500))
+    .filter(e => [e.from, e.subject, e.body].some(v => String(v || '').toLowerCase().includes(q)))
+    .slice(0, maxResults);
+}
 async function sendReply(user, to, subject, body) { st(user).sent.push({ to, subject, body, at: Date.now() }); return { demo: true }; }
 async function moveToSpam(user, id)     { st(user).spam.add(id); }
 async function removeFromSpam(user, id) { st(user).spam.delete(id); }
@@ -93,4 +100,4 @@ async function findLatestFrom(user, sender, { afterMs = 0 } = {}) {
   return { id: `demo-reply-${n + 1}`, messageId: `<demo-reply-${n + 1}@demo.genjutsu>`, text: SCAMMER_LINES[n], date: new Date().toISOString() };
 }
 
-module.exports = { name, label, hasServerFilters, getAttachment, fetchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, forwardAsAttachment, findLatestFrom };
+module.exports = { name, label, hasServerFilters, getAttachment, fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, forwardAsAttachment, findLatestFrom };

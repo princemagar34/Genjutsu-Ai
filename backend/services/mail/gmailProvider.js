@@ -14,7 +14,11 @@ const hasServerFilters = true;   // Gmail filters block future mail server-side
 const tok = (user) => user.refreshToken ? { access_token: user.accessToken, refresh_token: user.refreshToken } : user.accessToken;
 
 function fetchEmails(user, maxResults) {
-  return gmail.fetchEmails(tok(user), maxResults);
+  return gmail.fetchEmails(tok(user), maxResults, user.id);
+}
+
+function searchEmails(user, query, maxResults) {
+  return gmail.searchEmails(tok(user), query, maxResults, user.id);
 }
 
 function sendReply(user, to, subject, body, threadOptions = {}) {
@@ -93,5 +97,5 @@ async function getAttachment(user, email, att) {
 
 module.exports = {
   name, label, hasServerFilters, getAttachment,
-  fetchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
+  fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
 };

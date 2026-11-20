@@ -172,6 +172,23 @@ async function fetchEmails(user, maxResults = 20) {
     normalise(m, m.hasAttachments ? await listAttachments(user, m.id) : [])));
 }
 
+// Search the whole mailbox with Microsoft Graph's $search (sender, subject, body).
+// $search can't be combined with $orderby, so results are sorted here. Sent
+// items and drafts are dropped so only received mail is checked.
+async function searchEmails(user, query, maxResults = 50) {
+  const top  = Math.max(1, Math.min(parseInt(maxResults, 10) || 50, 100));
+  const term = String(query || '').replace(/["\\]/g, ' ').trim();
+  if (!term) return [];
+  const data = await graph(user, 'GET',
+    `/me/messages?$search=${encodeURIComponent(`"${term}"`)}&$top=${top}&$select=${LIST_FIELDS},isDraft,parentFolderId`);
+  let sentId = null;
+  try { sentId = (await graph(user, 'GET', '/me/mailFolders/sentitems?$select=id'))?.id || null; } catch (_) {}
+  const messages = (data?.value || []).filter(m => !m.isDraft && m.parentFolderId !== sentId);
+  const emails = await Promise.all(messages.map(async m =>
+    normalise(m, m.hasAttachments ? await listAttachments(user, m.id) : [])));
+  return emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
 // Replies inside the original conversation when we know which message we
 // are answering (honeypot), otherwise sends a fresh message.
 async function sendReply(user, to, subject, body, threadOptions = {}) {
@@ -249,5 +266,5 @@ module.exports = {
   getAttachment,
   name, label, hasServerFilters,
   isConfigured, authUrl, exchangeCode, getProfile,
-  fetchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
+  fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom, forwardAsAttachment
 };

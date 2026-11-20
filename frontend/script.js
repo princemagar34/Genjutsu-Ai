@@ -42,6 +42,7 @@ let checksChart = null, domainsChart = null;
 
 // ── Current loaded emails cache ──────────────────────────────
 let cachedEmails = [];
+let mailboxSearch = null;   // the query while showing whole-mailbox search results, else null
 // FIX: Safe lookup map so onclick handlers never embed raw email data in HTML attributes
 // (email.from / email.subject can contain quotes and angle brackets that break onclick)
 const emailDataMap = {};
@@ -625,6 +626,7 @@ function renderPieChart(types) {
 // EMAILS — load and render from backend
 // ============================================================
 async function loadEmails(filter = 'all', isRetry = false) {
+    if (mailboxSearch) { mailboxSearch = null; searchBanner(null); }
     const list = document.getElementById('emailList');
     const countEl = document.getElementById('emailCountInfo');
     list.innerHTML = `<div class="loading-state">
@@ -1740,20 +1742,86 @@ function initFilters() {
 }
 
 // ============================================================
-// SEARCH (client-side filter on cached emails)
+// SEARCH
+// Typing filters the emails already on screen. Pressing Enter searches the
+// whole mailbox (older emails too) and checks every result the same way.
 // ============================================================
+
 function initSearchFilter() {
     const searchInput = document.getElementById('searchInput');
-    if (!searchInput) return;
+    if (!searchInput || searchInput.dataset.bound) return;
+    searchInput.dataset.bound = '1';
+    searchInput.setAttribute('placeholder', 'Search emails… (Enter searches all mail)');
+    searchInput.setAttribute('enterkeyhint', 'search');
 
     searchInput.addEventListener('input', function () {
-        const term   = this.value.toLowerCase();
-        const items  = document.querySelectorAll('.email-item');
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(term) ? 'flex' : 'none';
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('#emailList .email-item').forEach(item => {
+            item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none';
         });
+        if (!term && mailboxSearch) exitMailboxSearch();
     });
+    searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchMailbox(this.value); }
+        if (e.key === 'Escape' && mailboxSearch) { this.value = ''; exitMailboxSearch(); }
+    });
+}
+
+function searchBanner(html) {
+    let el = document.getElementById('mailboxSearchBanner');
+    if (!html) { el?.remove(); return; }
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'mailboxSearchBanner';
+        el.className = 'mailbox-search-banner';
+        el.setAttribute('role', 'status');
+        const list = document.getElementById('emailList');
+        list.parentNode.insertBefore(el, list);
+    }
+    el.innerHTML = html;
+}
+
+async function searchMailbox(raw) {
+    const q = String(raw || '').trim();
+    if (q.length < 2) { showToast('Search', 'Type at least 2 characters, then press Enter.', 'info'); return; }
+    if (document.querySelector('.nav-item.active')?.dataset?.page !== 'emails') {
+        document.querySelector('.nav-item[data-page="emails"]')?.click();
+    }
+    mailboxSearch = q;
+    const list = document.getElementById('emailList');
+    const countEl = document.getElementById('emailCountInfo');
+    searchBanner(`<i class="fas fa-search" aria-hidden="true"></i><span>Searching your whole mailbox for <strong>${escHtml(q)}</strong>…</span>`);
+    list.innerHTML = `<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Searching older emails and checking each one…</p></div>`;
+    try {
+        const res  = await apiFetch(`${API_BASE}/api/emails/search?q=${encodeURIComponent(q)}&limit=50`);
+        const data = await res.json();
+        if (mailboxSearch !== q) return;   // a newer search or "Back to latest" happened meanwhile
+        if (!data.success) throw new Error(data.error || 'Search failed');
+        data.emails.forEach(e => { emailDataMap[e.id] = e; });
+        const n = data.emails.length;
+        const risky = data.emails.filter(e => ((e.threat || {}).overrideLevel || (e.threat || {}).level) !== 'safe').length;
+        searchBanner(`<i class="fas fa-search" aria-hidden="true"></i>
+            <span>${n ? `${n} result${n === 1 ? '' : 's'}` : 'No results'} from your whole mailbox for <strong>${escHtml(q)}</strong>${n ? ` · ${risky ? `${risky} need${risky === 1 ? 's' : ''} a look` : 'all look safe'}` : ''}${n >= 50 ? ' · showing the newest 50' : ''}</span>
+            <button type="button" class="btn-link" onclick="exitMailboxSearch(true)">Back to latest emails</button>`);
+        countEl.textContent = `${n} search result${n === 1 ? '' : 's'}`;
+        if (!n) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-search"></i><p>Nothing in your mailbox matches “${escHtml(q)}”. Try a sender's address, a word from the subject, or a shorter word.</p></div>`;
+            return;
+        }
+        renderEmailList(data.emails);
+    } catch (err) {
+        if (mailboxSearch !== q) return;
+        searchBanner(`<i class="fas fa-exclamation-circle" aria-hidden="true"></i><span>${escHtml(err.message || 'Search failed')}</span>
+            <button type="button" class="btn-link" onclick="exitMailboxSearch(true)">Back to latest emails</button>`);
+        list.innerHTML = `<div class="empty-state error"><i class="fas fa-exclamation-circle"></i><p>Could not search your mailbox. <a href="#" onclick="searchMailbox(mailboxSearch || '');return false;">Try again</a></p></div>`;
+    }
+}
+
+function exitMailboxSearch(clearBox = false) {
+    mailboxSearch = null;
+    searchBanner(null);
+    if (clearBox) { const i = document.getElementById('searchInput'); if (i) i.value = ''; }
+    loadEmails(currentFilter);
 }
 
 // ============================================================
@@ -2288,7 +2356,7 @@ function startAutoRefresh() {
     if (autoRefreshInterval) return;
     autoRefreshInterval = setInterval(async () => {
         const activeSection = document.querySelector('.nav-item.active')?.dataset?.page;
-        await loadEmails(currentFilter);
+        if (!mailboxSearch) await loadEmails(currentFilter);   // don't replace search results
         if (activeSection === 'threats') {
             await loadThreats();
         }
