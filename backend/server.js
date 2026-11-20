@@ -113,6 +113,13 @@ if (process.env.NODE_ENV !== 'production' && require('fs').existsSync(FRONTEND_D
 
 app.use('/auth',      authRoutes);
 // Rate limits: generous overall, tighter on scans and AI
+// Health check for the Cloudflare worker's failover. Doesn't touch the database,
+// so checking it never wakes the database up.
+app.get('/api/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, server: require('./database/db').SERVER_NAME, uptime: Math.round(process.uptime()) });
+});
+
 app.use('/api', rateLimit({ name: 'api', windowMs: 60 * 1000, max: 240 }));
 app.use(['/api/emails', '/api/threats', '/api/analytics'], rateLimit({ name: 'scan', windowMs: 60 * 1000, max: 30, message: 'Scanning too often. Please wait a minute.' }));
 app.use('/api/ai', rateLimit({ name: 'ai', windowMs: 60 * 1000, max: 12, message: 'Too many AI requests. Please wait a minute.' }));

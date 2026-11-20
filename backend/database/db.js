@@ -211,6 +211,16 @@ async function initDB() {
       logged_at   TIMESTAMPTZ DEFAULT NOW()
     );
 
+    -- Background jobs claim a time slot here so that, with two servers
+    -- running (main + backup), each job runs on only one of them.
+    CREATE TABLE IF NOT EXISTS job_runs (
+      name   TEXT   NOT NULL,
+      slot   BIGINT NOT NULL,
+      server TEXT,
+      ran_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (name, slot)
+    );
+
     CREATE TABLE IF NOT EXISTS system_settings (
       key        TEXT PRIMARY KEY,
       value      TEXT NOT NULL,
@@ -1307,7 +1317,29 @@ async function getBlockedEmails(userId) {
   return res.rows;
 }
 
+// ── Run a background job on only one server ─────────────────
+// Splits time into slots of periodMs. The first server to claim a slot runs the
+// job; any other server sees the claim and skips it. Returns true if this
+// server should run the job.
+const SERVER_NAME = process.env.SERVER_NAME || process.env.RENDER_SERVICE_NAME || process.env.KOYEB_SERVICE_NAME || 'server';
+async function claimJob(name, periodMs) {
+  const slot = Math.floor(Date.now() / periodMs);
+  try {
+    const r = await query(
+      `INSERT INTO job_runs (name, slot, server) VALUES ($1, $2, $3) ON CONFLICT (name, slot) DO NOTHING RETURNING name`,
+      [name, slot, SERVER_NAME]);
+    if (r.rowCount && Math.random() < 0.05) {
+      query(`DELETE FROM job_runs WHERE ran_at < NOW() - INTERVAL '30 days'`).catch(() => {});
+    }
+    return r.rowCount > 0;
+  } catch (e) {
+    console.warn(`⚠️  Could not claim job ${name}:`, e.message);
+    return false;
+  }
+}
+
 module.exports = {
+  claimJob, SERVER_NAME,
   pool, query, initDB, encryptStoredTokens,
   getGlobalBlockSet, clearGlobalBlockCache, markScan, getUserThreatRecords, countUserScans,
   getSafeSenders, addSafeSender, removeSafeSender, getScanContext, getEmailSender,

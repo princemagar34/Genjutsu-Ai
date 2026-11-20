@@ -45,6 +45,7 @@ async function sendDigest(userId, sessionUser = null) {
 // Checks every hour for anyone whose digest is due
 function startDigestScheduler() {
   const run = async () => {
+    if (!(await db.claimJob('weekly-digest', 60 * 60 * 1000))) return;   // the other server has this hour
     let due = [];
     try { due = await db.getUsersDueForDigest(); } catch (_) { return; }
     for (const userId of due) {

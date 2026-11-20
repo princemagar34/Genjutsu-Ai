@@ -269,6 +269,7 @@ function startTrainingScheduler() {
   if (process.env.ML_AUTO_TRAIN === 'false') return;
   const run = async () => {
     try {
+      if (!(await db().claimJob('model-train', 24 * 60 * 60 * 1000))) return;   // the other server has today
       const r = await train({ by: 'scheduler' });
       if (!['no_change', 'busy'].includes(r.status)) console.log(`🧠 Model training: ${r.message}`);
     } catch (e) { console.warn('⚠️  Model training failed:', e.message); }

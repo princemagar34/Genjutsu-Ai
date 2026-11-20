@@ -102,7 +102,11 @@ async function getActive() {
 }
 
 function startSharedFeed() {
-  const run = () => rebuild().then(r => { if (r.active) console.log(`🌐 Shared threat feed: ${r.active} active indicators`); })
+  const run = async () => {
+    if (!(await db().claimJob('shared-feed', 30 * 60 * 1000))) return;   // the other server has this slot
+    return rebuildAndLog();
+  };
+  const rebuildAndLog = () => rebuild().then(r => { if (r.active) console.log(`🌐 Shared threat feed: ${r.active} active indicators`); })
     .catch(e => console.warn('⚠️  Shared feed:', e.message));
   setTimeout(run, 60 * 1000).unref?.();
   setInterval(run, 30 * 60 * 1000).unref?.();
