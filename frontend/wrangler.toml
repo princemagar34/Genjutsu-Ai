@@ -8,3 +8,7 @@ assets = { directory = "./" }
 
 [vars]
 BACKEND_HOST = "https://genjutsu-api.onrender.com"
+
+# Keep the free Render backend awake: ping every 10 minutes (it sleeps after 15).
+[triggers]
+crons = ["*/10 * * * *"]

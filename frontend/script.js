@@ -10,6 +10,11 @@ const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && loca
     ? 'http://localhost:3001'
     : '';
 
+// ── Wake the backend the moment the page opens ────────────────
+// The free Render server sleeps when idle; this starts it booting right away
+// (through the Worker's /api proxy) while the user is still looking at the page.
+try { fetch(`${API_BASE}/api/health`, { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
+
 // ── Session ID management (cross-domain cookie workaround) ────
 function getSessionId() { return localStorage.getItem('genjutsu_sid') || ''; }
 function setSessionId(sid) { if (sid) localStorage.setItem('genjutsu_sid', sid); }

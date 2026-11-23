@@ -125,9 +125,33 @@ async function proxy(request, env, url) {
   return unavailable(request, url);
 }
 
+// ── Wake-up pings ────────────────────────────────────────────
+// Free Render servers sleep after ~15 minutes idle and take ~50s to boot.
+// A Cloudflare cron (see wrangler.toml) pings every 10 minutes so the backend
+// usually never falls asleep; page visits also poke it (see script.js).
+let lastWake = 0;
+function wakeBackends(env) {
+  const hosts = [env.BACKEND_HOST, env.BACKUP_HOST]
+    .map(h => (h || '').trim().replace(/\/$/, '')).filter(Boolean);
+  return Promise.allSettled(hosts.map(h =>
+    fetch(h + '/api/health', { headers: { 'User-Agent': 'genjutsu-wake' }, signal: AbortSignal.timeout(70000) })
+  ));
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(wakeBackends(env));
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Page visit that reaches the Worker → wake the backend (at most every 30s)
+    const isPage = request.method === 'GET' && (request.headers.get('accept') || '').includes('text/html');
+    if (isPage && Date.now() - lastWake > 30000) {
+      lastWake = Date.now();
+      ctx.waitUntil(wakeBackends(env));
+    }
 
     if (BACKEND_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'))) {
       return proxy(request, env, url);
