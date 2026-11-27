@@ -162,6 +162,7 @@ async function checkAuthAndInit() {
         // Load real data
         await loadDashboard();
         await loadEmails('all');
+        loadDashboard();   // the inbox check just saved new results: refresh the cards
         await loadThreats();
         await loadHoneypotSessions();
 
@@ -485,12 +486,31 @@ async function attachSenderProfile(from) {
     if (html && host && !document.querySelector('#modalBody .sender-profile')) host.insertAdjacentHTML('afterend', html);
 }
 
+// The dashboard answers at once from saved scans; new emails are checked in the
+// background (data.scanning). While that runs, ask again every few seconds so
+// the cards update by themselves. Unchanged numbers are not re-drawn.
+let dashboardLastKey = '';
+let dashboardRecheck = null;
+let dashboardScanErrorShown = '';
+
 async function loadDashboard() {
     try {
         loadInsights();
         const res  = await apiFetch(`${API_BASE}/api/analytics/dashboard?days=7`);
         const data = await res.json();
         if (!data.success) return;
+
+        clearTimeout(dashboardRecheck);
+        if (data.scanning) dashboardRecheck = setTimeout(loadDashboard, 5000);
+
+        if (data.scanError && data.scanError !== dashboardScanErrorShown) {
+            dashboardScanErrorShown = data.scanError;
+            showToast('Could not reach your mailbox', 'Showing the emails already checked. ' + data.scanError, 'warning');
+        }
+
+        const key = JSON.stringify([data.stats, data.charts, data.recentThreats]);
+        if (key === dashboardLastKey) return;
+        dashboardLastKey = key;
 
         // Stat cards
         animateNumber(document.getElementById('statTotal'),   data.stats.totalEmails);
@@ -506,7 +526,6 @@ async function loadDashboard() {
             (data.stats.quarantined ? ` · ${data.stats.quarantined} moved to spam` : '');
         const totalSub = document.getElementById('statTotalChange');
         if (totalSub) totalSub.textContent = `checked in the last ${data.period || '30 days'}`;
-        if (data.scanError) showToast('Could not reach your mailbox', 'Showing the emails already checked. ' + data.scanError, 'warning');
 
         // Refresh both notification badges (threats + remarks)
         loadNotifications();
@@ -2365,6 +2384,7 @@ function startAutoRefresh() {
     autoRefreshInterval = setInterval(async () => {
         const activeSection = document.querySelector('.nav-item.active')?.dataset?.page;
         if (!mailboxSearch) await loadEmails(currentFilter);   // don't replace search results
+        if (activeSection === 'dashboard' || !activeSection) loadDashboard();   // cheap now; skipped if nothing changed
         if (activeSection === 'threats') {
             await loadThreats();
         }
