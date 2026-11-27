@@ -326,6 +326,14 @@ async function initDB() {
     ALTER TABLE scan_results ADD COLUMN IF NOT EXISTS category TEXT;
     ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS persona     TEXT DEFAULT 'teacher';
     ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS stop_reason TEXT;
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS reply_due_at      TIMESTAMPTZ;  -- when Nami's next reply goes out
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS pending_msg_id    TEXT;         -- scammer message that reply answers
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS pending_msg_hdr   TEXT;         -- its Message-ID header, for threading
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS scammer_replies   INTEGER DEFAULT 0;
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS scammer_words     INTEGER DEFAULT 0;
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS first_scammer_at  TIMESTAMPTZ;
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS last_scammer_at   TIMESTAMPTZ;
+    ALTER TABLE honeypot_sessions ADD COLUMN IF NOT EXISTS effort_counted    INTEGER DEFAULT 0;  -- minutes_wasted already recounted from messages
     ALTER TABLE user_settings     ADD COLUMN IF NOT EXISTS honeypot_persona TEXT DEFAULT 'teacher';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS mail_provider    TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS mail_credentials TEXT;  -- AES-256-GCM sealed, IMAP only
@@ -968,18 +976,50 @@ async function getHoneypotSessions(userId, includeEnded = false) {
   return res.rows;
 }
 
-// Ending a session keeps the time it wasted (it used to reset to 0)
+// Ending a session keeps the scammer effort it counted (minutes_wasted) and
+// cancels any reply that was still waiting to go out
 async function endHoneypotSession(sessionId, stopReason = null) {
   await query(`UPDATE honeypot_sessions
-               SET status='ended',
-                   minutes_wasted = GREATEST(COALESCE(minutes_wasted,0), FLOOR(EXTRACT(EPOCH FROM (NOW() - started_at)) / 60)::int),
+               SET status='ended', reply_due_at = NULL,
                    stop_reason = COALESCE($2, stop_reason)
                WHERE session_id=$1 AND status <> 'ended'`, [sessionId, stopReason]);
 }
 
+// Every conversation Nami should keep going, for all users (server-side loop)
+async function getActiveHoneypotSessionsAll() {
+  return (await query(`SELECT * FROM honeypot_sessions WHERE status = 'active' ORDER BY user_id, started_at`)).rows;
+}
+
+// Pause / resume all of one user's conversations
+async function setHoneypotSessionsPaused(userId, paused) {
+  const [from, to] = paused ? ['active', 'paused'] : ['paused', 'active'];
+  const r = await query(`UPDATE honeypot_sessions SET status=$3 WHERE user_id=$1 AND status=$2`, [userId, from, to]);
+  return r.rowCount;
+}
+
+// "Time wasted" used to be the clock time since Nami started. Recount every
+// conversation once from what the scammer actually wrote (see nami.effortMinutes).
+async function recountHoneypotEffort() {
+  const { effortMinutes, wordCount } = require('../services/nami');
+  const sessions = (await query(`SELECT session_id FROM honeypot_sessions WHERE COALESCE(effort_counted,0) = 0`)).rows;
+  for (const { session_id } of sessions) {
+    const inbound = (await query(
+      `SELECT body, sent_at FROM honeypot_messages WHERE session_id=$1 AND direction='inbound' ORDER BY sent_at ASC`, [session_id])).rows;
+    const replies = inbound.slice(1);   // the first one is the original scam email
+    const minutes = Math.round(replies.reduce((a, m) => a + effortMinutes(m.body), 0));
+    const words   = replies.reduce((a, m) => a + wordCount(m.body), 0);
+    await query(`UPDATE honeypot_sessions SET minutes_wasted=$2, scammer_replies=$3, scammer_words=$4,
+                   first_scammer_at=$5, last_scammer_at=$6, effort_counted=1 WHERE session_id=$1`,
+      [session_id, minutes, replies.length, words, replies[0]?.sent_at || null, replies[replies.length - 1]?.sent_at || null]);
+  }
+  return sessions.length;
+}
+
 async function updateHoneypotSession(sessionId, fields = {}) {
   const allowed = ['minutes_wasted','replies_sent','status','last_reply_at',
-                   'references_hdr','last_processed_msg_id','persona','stop_reason'];
+                   'references_hdr','last_processed_msg_id','persona','stop_reason',
+                   'reply_due_at','pending_msg_id','pending_msg_hdr','scammer_replies','scammer_words',
+                   'first_scammer_at','last_scammer_at','effort_counted'];
   const filtered = Object.fromEntries(
     Object.entries(fields).filter(([k]) => allowed.includes(k))
   );
@@ -1345,6 +1385,7 @@ module.exports = {
   getSafeSenders, addSafeSender, removeSafeSender, getScanContext, getEmailSender,
   getRules, addRule, deleteRule, logUserActivity, getUserActivity, setDiscordWebhook,
   getDigestData, getUsersDueForDigest, markDigestSent, getStoredUser, saveStoredTokens, deleteUserData,
+  getActiveHoneypotSessionsAll, setHoneypotSessionsPaused, recountHoneypotEffort,
   getSenderProfile, getInsightRows, getResponseCounts, pruneDemoUsers,
   getSiemRows, createApiKey, listApiKeys, revokeApiKey, findUserByApiKey,
   upsertUser, getUserByEmail, saveEmailScan, getAlerts, markAllAlertsRead,
