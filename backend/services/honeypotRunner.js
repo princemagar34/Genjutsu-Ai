@@ -82,6 +82,9 @@ const ms = (d) => (d ? new Date(d).getTime() : 0);
 
 // ── Step 1: a new message from the scammer? ──────────────────
 async function checkForScammerReply(user, s, result) {
+  // The demo's pretend scammer answers on a timer, not to Nami's messages, so
+  // in the demo only listen for them once Nami's reply has gone out
+  if (isDemo(user) && s.reply_due_at) return s;
   // Only messages newer than the last one we logged and Nami's last reply
   const afterMs = Math.max(ms(s.last_scammer_at), ms(s.last_reply_at), ms(s.started_at));
   const msg = await findLatestFrom(user, s.sender_email, { afterMs, skipId: s.last_processed_msg_id || null });
