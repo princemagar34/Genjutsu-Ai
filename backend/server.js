@@ -163,6 +163,11 @@ initDB().then(async () => {
     feed.startSharedFeed();
   } catch (e) { console.warn('⚠️  Model training setup:', e.message); }
   startDigestScheduler();
+  try {
+    const n = await require('./database/db').recountHoneypotEffort();
+    if (n) console.log(`🍯 Recounted scammer effort for ${n} honeypot conversation(s)`);
+  } catch (e) { console.warn('⚠️  Honeypot recount:', e.message); }
+  require('./services/honeypotRunner').startHoneypotRunner();
   const { pruneDemoUsers } = require('./database/db');
   setInterval(() => pruneDemoUsers().catch(() => {}), 60 * 60 * 1000).unref();
   app.listen(PORT, () => {
