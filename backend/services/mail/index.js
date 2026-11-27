@@ -121,5 +121,5 @@ module.exports = {
   getAttachment,
   providers, providerFor, providerLabel,
   fetchEmails, searchEmails, sendReply, moveToSpam, removeFromSpam, createSpamFilter, findLatestFrom,
-  forwardAsAttachment, sendToSelf, withMailbox
+  forwardAsAttachment, sendToSelf, withMailbox, NO_REPLY
 };
