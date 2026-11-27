@@ -1487,8 +1487,9 @@ async function engageHoneypot(emailId, senderEmail, subject) {
         const data = await res.json();
 
         if (data.success) {
-            showToast('Honeypot Engaged!',
-                `Reply sent to ${actualTarget}. Time-wasting started!`, 'success');
+            const due = data.replyDueAt ? new Date(data.replyDueAt) : null;
+            showToast('Nami is on it',
+                due ? `She'll reply to ${actualTarget} ${hpWhen(due)}, like a real person would.` : `Conversation with ${actualTarget} started.`, 'success');
             // ── CHANGE: Fix 1 — navigate to honeypot page so user sees the
             // conversation starting from the original email, not a new tab ──
             setTimeout(() => nav('honeypot'), 800);
@@ -1513,25 +1514,43 @@ function renderLeaderboard(lb) {
     document.getElementById('hpMonthMinutes').textContent = `${lb.monthMinutes || 0} min`;
     document.getElementById('hpMostReplies').textContent = lb.mostReplies || 0;
     const list = document.getElementById('hpBoardList');
-    const rows = (lb.longest || []).filter(x => x.minutesWasted > 0 || x.repliesSent > 0);
+    const rows = (lb.longest || []).filter(x => x.minutesWasted > 0 || x.scammerReplies > 0);
     list.innerHTML = rows.length
-        ? rows.map(x => `<li><span class="who">${escHtml(x.senderEmail)}</span><span>${x.repliesSent} ${x.repliesSent === 1 ? 'reply' : 'replies'}</span><b>${x.minutesWasted} min</b></li>`).join('')
+        ? rows.map(x => `<li><span class="who">${escHtml(x.senderEmail)}</span><span>${x.scammerReplies || 0} ${x.scammerReplies === 1 ? 'reply' : 'replies'} from them</span><b>${x.minutesWasted} min</b></li>`).join('')
         : '<li class="empty">No conversations yet.</li>';
 }
 
 let lastIntel = null;
+const INTEL_GROUPS = [
+    { title: 'Bank',      icon: 'fa-building-columns', keys: { bankAccounts: 'Account', ibans: 'IBAN', swift: 'SWIFT' } },
+    { title: 'Crypto',    icon: 'fa-bitcoin-sign',     keys: { crypto: '' } },
+    { title: 'Phone & chat', icon: 'fa-phone',         keys: { phones: '', telegram: 'Telegram' } },
+    { title: 'Links',     icon: 'fa-link',             keys: { urls: '' } },
+    { title: 'Email addresses', icon: 'fa-at',         keys: { emails: '' } },
+];
 async function loadIntel() {
     const box = document.getElementById('hpIntel'); if (!box) return;
     try {
         const data = await (await apiFetch(`${API_BASE}/api/honeypot/intel`)).json();
         lastIntel = data;
         const t = data.total || {};
-        const label = { bankAccounts: 'Bank accounts', ibans: 'IBANs', swift: 'SWIFT codes', crypto: 'Crypto wallets', phones: 'Phone numbers', telegram: 'Telegram', emails: 'Email addresses', urls: 'Links' };
-        const rows = Object.keys(label).filter(k => (t[k] || []).length);
-        box.innerHTML = rows.length
-            ? rows.map(k => `<div class="mi-row"><span>${label[k]}</span><div>${t[k].map(v => `<code>${escHtml(v)}</code>`).join('')}</div></div>`).join('')
+        const groups = INTEL_GROUPS.map(g => ({ ...g, items: Object.entries(g.keys).flatMap(([k, tag]) => (t[k] || []).map(v => ({ v, tag }))) }))
+            .filter(g => g.items.length);
+        box.innerHTML = groups.length
+            ? groups.map(g => `<div class="intel-group">
+                <h4><i class="fas ${g.icon}"></i> ${g.title} <span class="intel-count">${g.items.length}</span></h4>
+                <ul>${g.items.map(({ v, tag }) => `<li>${tag ? `<span class="intel-tag">${tag}</span>` : ''}<code>${escHtml(v)}</code>
+                    <button type="button" class="intel-copy" data-copy="${escHtml(v)}" onclick="copyIntel(this)" aria-label="Copy ${escHtml(v)}"><i class="far fa-copy"></i></button></li>`).join('')}</ul>
+              </div>`).join('')
             : '<p class="hp-sub">Nothing collected yet. When a scammer replies with payment details or contact numbers, they appear here.</p>';
     } catch (_) {}
+}
+async function copyIntel(btn) {
+    try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.innerHTML = '<i class="fas fa-check"></i>'; btn.classList.add('done');
+        setTimeout(() => { btn.innerHTML = '<i class="far fa-copy"></i>'; btn.classList.remove('done'); }, 1500);
+    } catch (_) { showToast('Could not copy', 'Select the text and copy it instead', 'warning'); }
 }
 function exportIntel() {
     if (!lastIntel || !(lastIntel.sessions || []).length) { showToast('Nothing to export', 'No scammer details collected yet', 'info'); return; }
@@ -1539,9 +1558,65 @@ function exportIntel() {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `genjutsu-scammer-intel-${new Date().toISOString().slice(0, 10)}.json`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+// Sample line in each persona's voice (filled from the server, these are the defaults)
+let hpPersonas = {
+    teacher:    { sample: "I'm very keen to proceed! My nephew is a lawyer and he said I need official documentation first. Can you send that?" },
+    student:    { sample: "Sorry, I had an exam all day. Can you explain the steps again? I want to get it right this time." },
+    shopkeeper: { sample: "I think I mixed your message up with my supplier's. Can you send the details again?" },
+    office:     { sample: "This will need a purchase order and approval from my manager. Could you send your company details for the vendor form?" },
+};
+function showPersonaPreview(value) {
+    const el = document.getElementById('hpPersonaPreview');
+    const p = hpPersonas[value || document.getElementById('hpPersona')?.value];
+    if (el && p) el.innerHTML = `<i class="fas fa-quote-left" aria-hidden="true"></i> ${escHtml(p.sample)}`;
+}
 async function savePersona(value) {
+    showPersonaPreview(value);
     await apiFetch(`${API_BASE}/api/settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ honeypotPersona: value }) });
     showToast('Persona saved', `Nami will play: ${document.querySelector('#hpPersona option:checked').textContent}`, 'success');
+}
+
+// "in about 3 h (4:20 PM)" style time for when Nami's next reply goes out
+function hpWhen(date) {
+    const mins = Math.round((new Date(date) - Date.now()) / 60000);
+    const at = new Date(date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (mins <= 1) return 'any moment now';
+    if (mins < 60) return `in about ${mins} min (${at})`;
+    const h = Math.round(mins / 60);
+    return `in about ${h} h (${new Date(date).toDateString() === new Date().toDateString() ? at : 'tomorrow ' + at})`;
+}
+function hpStatus(s) {
+    if (s.status === 'paused') return { cls: 'paused', icon: 'fa-pause', text: 'Paused' };
+    if (s.status !== 'active') return { cls: 'stopped', icon: 'fa-stop', text: `Stopped${s.stopReason ? ': ' + s.stopReason.charAt(0).toLowerCase() + s.stopReason.slice(1) : ''}` };
+    if (s.replyDueAt) return { cls: 'due', icon: 'fa-clock', text: `Nami replies ${hpWhen(s.replyDueAt)}` };
+    return { cls: 'waiting', icon: 'fa-hourglass-half', text: 'Waiting for scammer' };
+}
+const HP_PREVIEW = 3;   // messages shown before "Show all"
+function hpBubbles(messages, all) {
+    const list = all ? messages : messages.slice(-HP_PREVIEW);
+    return list.map(m => {
+        const out = m.direction === 'outbound';
+        return `<div class="hp-bubble ${out ? 'out' : 'in'}"><b>${out ? 'Nami (as you)' : 'Scammer'} <span class="hp-time">${m.sentAt ? formatDate(m.sentAt) : ''}</span></b>${escHtml(m.body || '(No content)')}</div>`;
+    }).join('');
+}
+let hpSessionsCache = {};
+function toggleHoneypotMessages(sessionId) {
+    const s = hpSessionsCache[sessionId]; const box = document.getElementById(`hp-msgs-${sessionId}`);
+    if (!s || !box) return;
+    const all = box.dataset.all !== '1';
+    box.dataset.all = all ? '1' : '0';
+    box.innerHTML = hpBubbles(s.messages || [], all);
+    const btn = document.getElementById(`hp-more-${sessionId}`);
+    if (btn) btn.textContent = all ? 'Show latest only' : `Show all ${s.messages.length} messages`;
+}
+let hpAnyActive = false;
+async function togglePauseAll() {
+    const resume = !hpAnyActive;
+    if (!resume && !confirm('Pause every active conversation? Nami stops replying until you resume.')) return;
+    const data = await (await apiFetch(`${API_BASE}/api/honeypot/${resume ? 'resume-all' : 'pause-all'}`, { method: 'POST' })).json();
+    if (data.success) showToast(resume ? 'Nami is back' : 'All conversations paused',
+        resume ? `${data.resumed} conversation(s) resumed` : `${data.paused} conversation(s) paused. Nothing will be sent until you resume.`, 'success');
+    await loadHoneypotSessions();
 }
 
 async function loadHoneypotSessions() {
@@ -1551,12 +1626,27 @@ async function loadHoneypotSessions() {
         const res  = await apiFetch(`${API_BASE}/api/honeypot/sessions`);
         const data = await res.json();
 
-        document.getElementById('hpActiveSessions').textContent = data.activeConversations || 0;
+        if (data.personas && typeof data.personas.teacher === 'object') hpPersonas = data.personas;
+        showPersonaPreview();
+
+        const active = data.activeConversations || 0, paused = data.pausedConversations || 0;
+        document.getElementById('hpActiveSessions').textContent = active;
+        document.getElementById('hpActiveSub').textContent = active || paused
+            ? `${active ? 'Nami is talking' : 'Nobody active'}${paused ? ` · ${paused} paused` : ''}`
+            : 'Nami is not talking to anyone';
         renderLeaderboard(data.leaderboard);
         loadIntel();
         document.getElementById('hpTimeWasted').textContent = `${data.totalMinutesWasted || 0} min`;
-        // FIX 2: use victimsProtected from backend (scoped to this user), not a made-up formula
-        document.getElementById('hpVictims').textContent = data.victimsProtected || 0;
+        const r = data.totalScammerReplies || 0, w = data.totalScammerWords || 0;
+        document.getElementById('hpEffortSub').textContent = `${r} ${r === 1 ? 'reply' : 'replies'} · ${w.toLocaleString()} words written`;
+        document.getElementById('hpVictims').textContent = data.scammersEngaged ?? data.victimsProtected ?? 0;
+
+        hpAnyActive = active > 0;
+        const pauseBtn = document.getElementById('hpPauseAll');
+        if (pauseBtn) {
+            pauseBtn.hidden = !(active || paused);
+            pauseBtn.innerHTML = hpAnyActive ? '<i class="fas fa-pause"></i> <span>Pause all</span>' : '<i class="fas fa-play"></i> <span>Resume all</span>';
+        }
 
         if (!data.sessions || data.sessions.length === 0) {
             list.innerHTML = `<div class="empty-state">
@@ -1566,72 +1656,34 @@ async function loadHoneypotSessions() {
             return;
         }
 
-        list.innerHTML = data.sessions.map(s => `
-            <div class="honeypot-session" id="session-${s.sessionId}">
+        hpSessionsCache = Object.fromEntries(data.sessions.map(s => [s.sessionId, s]));
+        list.innerHTML = data.sessions.map(s => {
+            const st = hpStatus(s), msgs = s.messages || [];
+            return `
+            <div class="honeypot-session hp-chat ${st.cls}" id="session-${s.sessionId}">
                 <div class="session-header">
                     <div class="session-status ${s.status === 'active' ? 'active' : ''}"></div>
                     <h4>${escHtml(s.subject || 'Scam Email')}</h4>
-                    <span class="session-duration">${s.minutesWasted} min wasted</span>
+                    <span class="session-duration" title="Estimated from what the scammer wrote">${s.minutesWasted} min wasted</span>
                 </div>
-                <p class="session-meta">Nami as <b>${escHtml(s.personaLabel || 'Retired teacher, 72')}</b>${s.status !== 'active' ? ` · ended${s.stopReason ? ': ' + escHtml(s.stopReason) : ''}` : ' · active'}</p>
-                <dl class="session-details">
-                    <div><dt>Scammer</dt><dd>${escHtml(s.senderEmail)}</dd></div>
-                    <div><dt>Replies sent</dt><dd>${s.repliesSent}</dd></div>
-                    <div><dt>Started</dt><dd>${formatDate(s.startedAt)}</dd></div>
-                </dl>
+                <div class="hp-chat-meta">
+                    <span class="hp-chip ${st.cls}"><i class="fas ${st.icon}"></i> ${escHtml(st.text)}</span>
+                    <span>${escHtml(s.senderEmail)}</span>
+                    <span>Nami as <b>${escHtml(s.personaLabel || 'Retired teacher, 72')}</b></span>
+                    <span>${s.repliesSent} sent · ${s.scammerReplies || 0} back</span>
+                </div>
+                <div class="honeypot-messages" id="hp-msgs-${s.sessionId}">${hpBubbles(msgs, false)}</div>
                 <div class="session-actions">
-                    <button class="btn btn-sm btn-secondary"
-                        onclick="toggleHoneypotMessages('${s.sessionId}')">
-                        <i class="fas fa-comments"></i> View Conversation
-                    </button>
-                    ${s.status === 'active' ? `<button class="btn btn-sm btn-danger"
-                        onclick="endHoneypotSession('${s.sessionId}')">End Session</button>` : ''}
+                    ${msgs.length > HP_PREVIEW ? `<button class="btn btn-sm btn-secondary" id="hp-more-${s.sessionId}" onclick="toggleHoneypotMessages('${s.sessionId}')">Show all ${msgs.length} messages</button>` : ''}
+                    ${s.status === 'active' || s.status === 'paused' ? `<button class="btn btn-sm btn-danger"
+                        onclick="endHoneypotSession('${s.sessionId}')">End conversation</button>` : ''}
                 </div>
-                <div class="honeypot-messages" id="hp-msgs-${s.sessionId}"
-                    style="display:none"></div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
     } catch (err) {
         list.innerHTML = `<div class="empty-state error">
             <i class="fas fa-exclamation-circle"></i><p>Could not load sessions.</p></div>`;
-    }
-}
-
-// ── CHANGE: Inline conversation viewer — no new tab needed ───
-// Toggles the message panel inside each session card.
-// Fetches from /api/honeypot/sessions/:id/messages (user-facing endpoint).
-async function toggleHoneypotMessages(sessionId) {
-    const panel = document.getElementById(`hp-msgs-${sessionId}`);
-    if (!panel) return;
-
-    // If already open, just close it
-    if (panel.style.display !== 'none') {
-        panel.style.display = 'none';
-        return;
-    }
-
-    panel.style.display = 'flex';
-    panel.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Loading conversation...</p>';
-
-    try {
-        const res  = await apiFetch(`${API_BASE}/api/honeypot/sessions/${sessionId}/messages`);
-        const data = await res.json();
-
-        if (!data.success || !data.messages || data.messages.length === 0) {
-            panel.innerHTML = '<p style="color:#64748b;font-size:12px">No messages yet.</p>';
-            return;
-        }
-
-        panel.innerHTML = data.messages.map(m => {
-            const isOut = m.direction === 'outbound';
-            return `
-            <div class="hp-bubble ${isOut ? 'out' : 'in'}">
-                <b>${isOut ? 'Nami (as you)' : 'Scammer'} <span class="hp-time">${new Date(m.sentAt).toLocaleString()}</span></b>
-                ${escHtml(m.body || '(No content)')}
-            </div>`;
-        }).join('');
-    } catch (err) {
-        panel.innerHTML = '<p style="color:#ef4444;font-size:12px">Could not load messages.</p>';
     }
 }
 
@@ -2356,9 +2408,9 @@ async function pollHoneypot() {
         const data = await res.json();
         if (data.replied > 0) {
             showToast('Honeypot Active!',
-                `Sent ${data.replied} auto-repl${data.replied > 1 ? 'ies' : 'y'} to scammer(s)`, 'success');
-            await loadHoneypotSessions(); // refresh session list
+                `Nami sent ${data.replied} repl${data.replied > 1 ? 'ies' : 'y'} to scammer(s)`, 'success');
         }
+        if (data.replied > 0 || data.received > 0 || (data.stopped || []).length) await loadHoneypotSessions();
     } catch (err) {
         // silent fail — polling should never interrupt the user
     }
