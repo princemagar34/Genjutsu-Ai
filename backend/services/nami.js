@@ -161,5 +161,27 @@ function mergeIntel(list) {
   return out;
 }
 
+// ── Reply timing: the "lottery ticket" ──────────────────────
+// A real person doesn't answer within seconds. When a message arrives, Nami
+// draws one random moment between 15 minutes and 24 hours after it arrived and
+// replies then. Demo accounts use 20–60 seconds so the demo can be watched.
+const REPLY_MIN_MS = 15 * 60 * 1000;
+const REPLY_MAX_MS = 24 * 60 * 60 * 1000;
+function drawReplyTime(arrivedMs = Date.now(), { demo = false } = {}) {
+  const [min, max] = demo ? [20 * 1000, 60 * 1000] : [REPLY_MIN_MS, REPLY_MAX_MS];
+  return new Date(arrivedMs + min + Math.random() * (max - min));
+}
+
+// ── Scammer effort: the honest "time wasted" ─────────────────
+// Counts only what the scammer actually did: for each reply they wrote,
+// about 2 minutes to read Nami's message plus their writing time at 20 words
+// a minute. A scammer who never replies wasted nothing.
+const wordCount = (text) => (String(text || '').match(/\S+/g) || []).length;
+const effortMinutes = (text) => 2 + wordCount(text) / 20;
+
+// One line in each persona's voice, for the preview next to the picker
+const personaSamples = () => Object.fromEntries(Object.entries(PERSONAS).map(([k, p]) => [k, { label: p.label, sample: p.fallback[1] || p.fallback[0] }]));
+
 module.exports = { PERSONAS, DEFAULT_PERSONA, personaOf, stageFor, fallbackReply, systemPrompt, sanitiseReply,
-  safetyCheck, MAX_REPLIES, MAX_DAYS, extractIntel, mergeIntel };
+  safetyCheck, MAX_REPLIES, MAX_DAYS, extractIntel, mergeIntel,
+  drawReplyTime, REPLY_MIN_MS, REPLY_MAX_MS, wordCount, effortMinutes, personaSamples };
