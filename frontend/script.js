@@ -3,16 +3,19 @@
 // ============================================================
 
 // ── Backend API base URL ──────────────────────────────────────
-// Production: '' — genjutsu.org's Cloudflare Worker proxies /auth and /api to the backend.
+// Production: the browser talks to https://api.genjutsu.org directly (a Render
+// custom domain). Going through the Worker proxy made Render's Cloudflare bot
+// check block sign-in with "Performing security verification".
 // Local dev: if this page is served by something else on localhost (e.g. VS Code
 // Live Server on :5500), talk to the backend on :3001 directly.
-const API_BASE = (['localhost', '127.0.0.1'].includes(location.hostname) && location.port !== '3001')
-    ? 'http://localhost:3001'
-    : '';
+const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const API_BASE = IS_LOCAL
+    ? (location.port !== '3001' ? 'http://localhost:3001' : '')
+    : (location.hostname.endsWith('genjutsu.org') ? 'https://api.genjutsu.org' : '');
 
 // ── Wake the backend the moment the page opens ────────────────
 // The free Render server sleeps when idle; this starts it booting right away
-// (through the Worker's /api proxy) while the user is still looking at the page.
+// (straight to api.genjutsu.org) while the user is still looking at the page.
 try { fetch(`${API_BASE}/api/health`, { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
 
 // ── Session ID management (cross-domain cookie workaround) ────
