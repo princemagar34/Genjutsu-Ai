@@ -8,6 +8,9 @@ assets = { directory = "./" }
 
 [vars]
 BACKEND_HOST = "https://genjutsu-api.onrender.com"
+# Public address of the backend. Browsers go here directly (no Worker proxy),
+# so Render's Cloudflare bot check never sees a server-to-server request.
+API_PUBLIC_HOST = "https://api.genjutsu.org"
 
 # Keep the free Render backend awake: ping every 10 minutes (it sleeps after 15).
 [triggers]
