@@ -1,6 +1,14 @@
 // worker.js — Genjutsu Cloudflare Worker
-// Serves the static frontend via env.ASSETS and forwards /admin, /auth and /api
-// to the Express backend.
+// Serves the static frontend via env.ASSETS.
+//
+// /admin, /org, /auth and /api live on the backend. When env.API_PUBLIC_HOST is
+// set (https://api.genjutsu.org), the browser is sent straight there. Render sits
+// behind Cloudflare bot protection, which challenges server-to-server requests
+// coming from this Worker; the challenge then fails inside genjutsu.org
+// ("Performing security verification… Unable to connect"). A real browser going
+// to api.genjutsu.org directly is not affected.
+//
+// Without API_PUBLIC_HOST the old behaviour is kept: the Worker proxies the request.
 //
 // Two backends, free failover:
 //   env.BACKEND_HOST  main server   (e.g. Koyeb)
@@ -10,7 +18,7 @@
 // is too slow to answer, the request is sent to the backup instead, and the main
 // server is skipped for a short while so later requests don't wait on it.
 
-const BACKEND_PREFIXES = ['/admin', '/auth', '/api'];
+const BACKEND_PREFIXES = ['/admin', '/org', '/auth', '/api'];
 
 // How long to wait for a server before trying the other one. A sleeping free
 // server can take a while to wake, so the backup (last resort) gets longer.
@@ -111,6 +119,12 @@ async function proxy(request, env, url) {
         downUntil.set(host, Date.now() + SKIP_DOWN_MS);
         continue;                       // the app never saw it: try the other server
       }
+      // Cloudflare bot challenge in front of the host: the app never saw the request
+      if (resp.headers.get('cf-mitigated') === 'challenge') {
+        downUntil.set(host, Date.now() + SKIP_DOWN_MS);
+        if (!last && canResend) continue;
+        return unavailable(request, url);
+      }
       if (resp.status < 500) downUntil.delete(host);
       return passThrough(resp, host);
     } catch (err) {
@@ -154,6 +168,9 @@ export default {
     }
 
     if (BACKEND_PREFIXES.some(prefix => url.pathname === prefix || url.pathname.startsWith(prefix + '/'))) {
+      const api = (env.API_PUBLIC_HOST || '').trim().replace(/\/$/, '');
+      // 307 keeps the method and body, so API clients posting to /api still work
+      if (api) return Response.redirect(api + url.pathname + url.search, 307);
       return proxy(request, env, url);
     }
 
