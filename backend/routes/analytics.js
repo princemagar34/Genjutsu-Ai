@@ -9,10 +9,9 @@ const { getScanContext } = require('../database/db');
 const router = express.Router();
 
 // ── GET /analytics/dashboard ─────────────────────────────────
-// 1. Scan the newest emails in the mailbox and save the results (if the mailbox is
-//    reachable; a failure here never hides the numbers already saved).
-// 2. Count everything from the saved scans of the last 30 days: newest scan of each
-//    email, with user/admin level changes applied, quarantined emails included.
+// Counts everything from the saved scans of the last 30 days: newest scan of each
+// email, with user/admin level changes applied, quarantined emails included.
+// New emails are checked in the background (see startInboxScan below).
 const { recordToEmail, nptDay, NPT_MS } = require('../services/threatRecords');
 const REASON_GROUPS = [
   [/look-alike|lookalike/i, 'Look-alike domain'], [/display name|impersonat/i, 'Impersonation'], [/reply-to/i, 'Reply-To mismatch'],
@@ -23,20 +22,63 @@ const REASON_GROUPS = [
 ];
 const groupOf = (reason) => (REASON_GROUPS.find(([re]) => re.test(reason)) || [null, 'Other'])[1];
 
+// The numbers come straight from the saved scans, so the dashboard answers in
+// well under a second. Checking the mailbox for new emails runs in the
+// background: only emails never scanned before are analysed (the inbox list,
+// /api/emails, re-checks the rest), at most one scan per user at a time and at
+// most one every 45 seconds. The answer says `scanning: true` while it runs so
+// the page can ask again when it's done.
+const SCAN_GAP_MS = 45 * 1000;
+const SCAN_PARALLEL = 5;
+const inboxScans = new Map();   // userId -> { running, lastStart, error }
+
+async function scanNewEmails(user) {
+  const userId = user.id;
+  const scanLimit = parseInt(await getSystemSetting('max_emails_scan')) || 100;
+  const emails = await fetchEmails(user, scanLimit);
+  const seen = new Set();
+  const unique = emails.filter(e => e && e.id && !seen.has(e.id) && seen.add(e.id));
+  if (!unique.length) return;
+
+  const { rows } = await query(
+    'SELECT DISTINCT gmail_message_id FROM emails WHERE user_id = $1 AND gmail_message_id = ANY($2)',
+    [userId, unique.map(e => e.id)]
+  );
+  const known = new Set(rows.map(r => r.gmail_message_id));
+  const fresh = unique.filter(e => !known.has(e.id));
+  if (!fresh.length) return;
+
+  try { await require('../services/attachmentScanner').prepare(user, fresh); } catch (e) { console.warn('[attachments]', e.message); }
+  const scanCtx = await getScanContext(userId);
+  for (let i = 0; i < fresh.length; i += SCAN_PARALLEL) {
+    await Promise.all(fresh.slice(i, i + SCAN_PARALLEL).map(async email => {
+      try { await saveEmailScan(email, await analyseEmail(email, scanCtx), userId); } catch (_) { /* one bad email never stops the rest */ }
+    }));
+  }
+}
+
+function startInboxScan(req) {
+  const userId = req.session.user.id;
+  const state = inboxScans.get(userId) || {};
+  if (state.running || Date.now() - (state.lastStart || 0) < SCAN_GAP_MS) return state;
+  state.lastStart = Date.now();
+  state.running = scanNewEmails(req.session.user)
+    .then(() => { state.error = null; })
+    .catch(err => { state.error = err.message; })
+    .finally(() => {
+      state.running = null;
+      // A provider may have refreshed the mailbox token during the scan: keep it
+      try { req.session.save(() => {}); } catch (_) {}
+    });
+  inboxScans.set(userId, state);
+  return state;
+}
+
 router.get('/analytics/dashboard', requireAuth, async (req, res) => {
   const userId = req.session.user.id;
-  let scanError = null;
-  try {
-    const scanLimit = parseInt(await getSystemSetting('max_emails_scan')) || 100;
-    const emails = await fetchEmails(req.session.user, scanLimit);
-    const seen = new Set();
-    const unique = emails.filter(e => !seen.has(e.id) && seen.add(e.id));
-    try { await require('../services/attachmentScanner').prepare(req.session.user, unique); } catch (e) { console.warn('[attachments]', e.message); }
-    const scanCtx = await getScanContext(userId);
-    for (const email of unique) {
-      try { await saveEmailScan(email, await analyseEmail(email, scanCtx), userId); } catch (_) { /* one bad email never stops the rest */ }
-    }
-  } catch (err) { scanError = err.message; }
+  const scan = startInboxScan(req);
+  const scanError = scan.error || null;
+  const scanning = !!scan.running;
 
   try {
     const all = (await require('../database/db').getUserThreatRecords(userId, 30)).map(recordToEmail);
@@ -68,6 +110,7 @@ router.get('/analytics/dashboard', requireAuth, async (req, res) => {
       success: true,
       period: '30 days',
       scanError,
+      scanning,
       stats: {
         totalEmails: all.length, dangerous: dangerous.length, suspiciousEmails: suspicious.length, safeEmails: safe.length,
         threatsBlocked: threats.filter(e => e.blocked).length, quarantined: threats.filter(e => e.quarantined).length,
