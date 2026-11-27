@@ -397,6 +397,7 @@
                             <p>Nami replies to scammers in your name and keeps them busy, so they waste time on her instead of real victims.</p>
                         </div>
                         <div class="hp-controls">
+                        <div class="hp-persona-wrap">
                         <label class="hp-persona">
                             <span>Nami plays</span>
                             <select id="hpPersona" onchange="savePersona(this.value)" aria-label="Who Nami pretends to be">
@@ -406,6 +407,8 @@
                                 <option value="office">Office manager</option>
                             </select>
                         </label>
+                        <p class="hp-persona-preview" id="hpPersonaPreview" aria-live="polite"></p>
+                        </div>
                         <div class="honeypot-toggle">
                             <span class="hp-toggle-title" id="hpModeTitle">Honeypot mode</span>
                             <span class="toggle-label" id="honeypotLabel">Inactive</span>
@@ -418,17 +421,29 @@
                     </div>
 
                     <div class="honeypot-stats">
-                        <div class="honeypot-stat">
-                            <h4>Active conversations</h4>
-                            <p class="stat-value" id="hpActiveSessions">0</p>
+                        <div class="stat-card hp-stat">
+                            <div class="stat-icon blue"><i class="fas fa-comments"></i></div>
+                            <div class="stat-info">
+                                <h3>Active conversations</h3>
+                                <p class="stat-number" id="hpActiveSessions">0</p>
+                                <span class="stat-change" id="hpActiveSub">Nami is not talking to anyone</span>
+                            </div>
                         </div>
-                        <div class="honeypot-stat">
-                            <h4>Scammer time wasted</h4>
-                            <p class="stat-value" id="hpTimeWasted">0 min</p>
+                        <div class="stat-card hp-stat">
+                            <div class="stat-icon orange"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="stat-info">
+                                <h3>Scammer time wasted</h3>
+                                <p class="stat-number" id="hpTimeWasted">0 min</p>
+                                <span class="stat-change" id="hpEffortSub" title="About 2 minutes to read each of Nami's messages plus their writing time at 20 words a minute">0 replies · 0 words written</span>
+                            </div>
                         </div>
-                        <div class="honeypot-stat">
-                            <h4>Scammers detected</h4>
-                            <p class="stat-value" id="hpVictims">0</p>
+                        <div class="stat-card hp-stat">
+                            <div class="stat-icon red"><i class="fas fa-user-secret"></i></div>
+                            <div class="stat-info">
+                                <h3>Scammers engaged</h3>
+                                <p class="stat-number" id="hpVictims">0</p>
+                                <span class="stat-change">conversations Nami started</span>
+                            </div>
                         </div>
                     </div>
 
@@ -438,11 +453,16 @@
                                 <div class="card-header">
                                     <div>
                                         <h3>Conversations</h3>
-                                        <p class="hp-sub">Every scammer reply is logged here and answered again in the same thread.</p>
+                                        <p class="hp-sub">Every scammer reply is logged here. Nami answers in the same thread at a random time 15 minutes to 24 hours later, like a real person would.</p>
                                     </div>
-                                    <button class="btn btn-secondary btn-sm" id="refreshSessions">
-                                        <i class="fas fa-sync-alt"></i> Refresh
-                                    </button>
+                                    <div class="hp-head-actions">
+                                        <button class="btn btn-secondary btn-sm" id="hpPauseAll" type="button" onclick="togglePauseAll()" hidden>
+                                            <i class="fas fa-pause"></i> <span>Pause all</span>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" id="refreshSessions">
+                                            <i class="fas fa-sync-alt"></i> Refresh
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="honeypot-list" id="honeypotSessionsList">
                                     <div class="empty-state">
@@ -456,7 +476,7 @@
                                 <h3>Time-wasted leaderboard</h3>
                                 <div class="hp-board-top">
                                     <div><strong id="hpMonthMinutes">0 min</strong><span>wasted this month</span></div>
-                                    <div><strong id="hpMostReplies">0</strong><span>most replies in one conversation</span></div>
+                                    <div><strong id="hpMostReplies">0</strong><span>most scammer replies in one conversation</span></div>
                                 </div>
                                 <ol class="hp-board-list" id="hpBoardList"><li class="empty">No conversations yet.</li></ol>
                             </div>
@@ -477,7 +497,7 @@
                                 <ol>
                                     <li><span>1</span>You engage a dangerous email from the Threats page.</li>
                                     <li><span>2</span>Nami writes a believable reply that asks questions and adds complications.</li>
-                                    <li><span>3</span>Each time the scammer writes back, the reply is logged and answered in the same thread.</li>
+                                    <li><span>3</span>Each time the scammer writes back, the reply is logged and Nami answers in the same thread at a random time 15 minutes to 24 hours later, even when Genjutsu is closed.</li>
                                 </ol>
                                 <button class="btn btn-primary btn-pill btn-sm" type="button" onclick="document.querySelector('.nav-item[data-page=&quot;threats&quot;]').click()">
                                     Choose a dangerous email
