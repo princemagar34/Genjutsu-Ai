@@ -3219,3 +3219,51 @@ html:not([data-theme="light"]) #loginScreen .login-theme-btn { background: #1215
     font: inherit; font-weight: 600; color: var(--info-color, #3b82f6);
     text-decoration: underline; text-underline-offset: 3px;
 }
+
+/* ── Honeypot page: stat cards, persona preview, chat, intel (Nov 2026) ── */
+.honeypot-container .honeypot-stats .hp-stat { flex-direction: row; align-items: center; padding: 20px; gap: 16px; border-radius: 14px; }
+.honeypot-container .hp-stat .stat-icon { width: 52px; height: 52px; font-size: 22px; flex-shrink: 0; }
+.honeypot-container .hp-stat .stat-info h3 { font-size: 13px; font-weight: 500; color: var(--text-muted); margin: 0 0 4px; }
+.honeypot-container .hp-stat .stat-number { font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; }
+.honeypot-container .hp-stat .stat-change { font-size: 12px; color: var(--text-muted); }
+
+.hp-persona-wrap { display: flex; flex-direction: column; gap: 6px; max-width: 340px; }
+.hp-persona-preview { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--text-muted); font-style: italic; }
+.hp-persona-preview:empty { display: none; }
+.hp-persona-preview i { font-size: 10px; opacity: .6; margin-right: 4px; vertical-align: 2px; }
+
+.hp-head-actions { display: flex; gap: 8px; flex-shrink: 0; justify-content: flex-end; }
+.hp-head-actions .btn { white-space: nowrap; }
+
+.hp-chat { border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 16px; background: var(--bg-primary); }
+.hp-chat.stopped { opacity: .78; }
+.hp-chat-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 6px 0 2px; font-size: 12px; color: var(--text-muted); }
+.hp-chat-meta b { color: var(--text-primary); font-weight: 600; }
+.hp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.hp-chip i { font-size: 11px; }
+.hp-chip.waiting { background: rgba(59, 130, 246, .14); color: #93c5fd; }
+.hp-chip.due     { background: rgba(99, 102, 241, .18); color: #c7c9ff; }
+.hp-chip.paused  { background: rgba(245, 158, 11, .16); color: #fcd34d; }
+.hp-chip.stopped { background: rgba(148, 163, 184, .18); color: var(--text-muted); }
+[data-theme="light"] .hp-chip.waiting { color: #2563eb; }
+[data-theme="light"] .hp-chip.due     { color: #4f46e5; }
+[data-theme="light"] .hp-chip.paused  { color: #b45309; }
+[data-theme="light"] .intel-copy.done { color: #15803d; border-color: #15803d; }
+.hp-chat .honeypot-messages { margin-top: 10px; }
+.hp-chat .honeypot-messages:empty { display: none; }
+.hp-chat .session-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.hp-chat .session-actions:empty { display: none; }
+.hp-time { font-weight: 400; opacity: .7; margin-left: 6px; }
+
+.intel-group { padding: 10px 0; border-top: 1px solid var(--border-color); }
+.intel-group:first-child { border-top: none; }
+.intel-group h4 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+.intel-group h4 i { color: var(--primary-color); width: 16px; text-align: center; }
+.intel-count { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--bg-tertiary); color: var(--text-muted); }
+.intel-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.intel-group li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.intel-group code { flex: 1; min-width: 0; padding: 4px 8px; border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 12px; word-break: break-all; }
+.intel-tag { font-size: 11px; color: var(--text-muted); min-width: 56px; }
+.intel-copy { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); cursor: pointer; }
+.intel-copy:hover { color: var(--primary-color); border-color: var(--primary-color); }
+.intel-copy.done { color: #16a34a; border-color: #16a34a; }
